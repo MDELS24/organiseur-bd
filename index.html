@@ -1,6 +1,587 @@
-<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Mon Organiseur</title><style>
-:root{--ink:#121212;--red:#ed3b33;--yellow:#ffd52e;--blue:#22a9e8;--paper:#fffdf4;--mint:#b9e8dc}*{box-sizing:border-box}body{margin:0;min-height:100vh;padding:28px 16px;background:var(--yellow) radial-gradient(#121212 1px,transparent 1.5px);background-size:9px 9px;color:var(--ink);font-family:"Trebuchet MS",Arial,sans-serif}main{width:min(100%,900px);min-height:620px;margin:auto;border:4px solid var(--ink);background:var(--paper);box-shadow:10px 10px 0 var(--ink)}.stripe{height:18px;background:repeating-linear-gradient(135deg,var(--red) 0 12px,var(--ink) 12px 16px,var(--yellow) 16px 28px,var(--ink) 28px 32px)}header{padding:20px 26px 12px;border-bottom:3px solid var(--ink)}h1{display:inline-block;margin:0;padding:4px 10px 2px;border:3px solid var(--ink);background:var(--blue);color:white;font:clamp(2rem,6vw,3.25rem)/1 Impact,"Arial Black",sans-serif;letter-spacing:.03em;text-transform:uppercase;text-shadow:2px 2px #111;transform:rotate(-1.5deg)}h1 small{font:800 .28em "Trebuchet MS",Arial;color:#111;text-shadow:none;vertical-align:middle}.sync,.nav,.tools{display:flex;align-items:center;justify-content:space-between;gap:10px}.sync{margin-top:15px;padding:8px 10px;border:2px solid var(--ink);background:#e8f7ff;font-size:.78rem;font-weight:800}.sync form{display:flex;gap:7px}.sync input{width:200px;padding:6px;border:2px solid var(--ink);font:inherit}.nav{justify-content:flex-start;padding:12px 26px;border-bottom:3px solid var(--ink);background:var(--mint)}.nav a,button{border:2px solid var(--ink);background:var(--red);box-shadow:3px 3px #111;color:white;padding:8px 11px;font:900 .75rem "Trebuchet MS",Arial;letter-spacing:.03em;text-decoration:none;text-transform:uppercase;cursor:pointer}.nav a.active{background:var(--yellow);color:#111;transform:translate(2px,2px);box-shadow:1px 1px #111}button.alt{background:var(--yellow);color:#111}.view{padding:25px}.hidden{display:none!important}.tools{margin-bottom:16px}.tools h2{margin:0;font:900 1rem "Arial Black",sans-serif;text-transform:uppercase}.add{background:var(--red)}.task-form{display:flex;gap:10px;margin-bottom:15px}.task-form input{flex:1;min-width:0;border:3px solid var(--ink);padding:12px;font:700 1rem inherit;box-shadow:4px 4px #111}ul{margin:0;padding:0;list-style:none;display:grid;gap:10px}.task{display:flex;align-items:center;gap:12px;border:3px solid var(--ink);padding:12px;background:white;box-shadow:4px 4px #111;font-weight:700}.task.done{background:#ddd;text-decoration:line-through;color:#666}.task input{width:21px;height:21px;accent-color:var(--red)}.task span{flex:1;overflow-wrap:anywhere}.delete{padding:2px 7px;background:var(--yellow);color:#111}.empty{padding:36px 8px;text-align:center;font:italic 1.05rem Georgia,serif;color:#555}.notes-layout{display:grid;grid-template-columns:280px 1fr;min-height:420px;border:3px solid var(--ink)}.note-list{padding:13px;background:#fff2ad;border-right:3px solid var(--ink)}.note-card{width:100%;margin-bottom:8px;border:2px solid var(--ink);background:#fff;padding:9px;text-align:left;box-shadow:3px 3px #111;font:inherit;cursor:pointer}.note-card.selected{background:var(--mint);transform:translate(2px,2px);box-shadow:1px 1px #111}.note-card strong,.note-card span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.note-card span{margin-top:4px;font:italic .78rem Georgia;color:#555}.editor{display:flex;flex-direction:column;padding:16px}.editor-top{display:flex;justify-content:space-between;border-bottom:3px solid var(--ink);padding-bottom:9px}.saved{font:800 .72rem "Trebuchet MS",Arial;text-transform:uppercase}#note-title{margin:14px 0 9px;border:0;border-bottom:3px solid var(--ink);padding:4px 0;font:900 2rem Impact,"Arial Black",sans-serif;outline:none}#note-content{flex:1;min-height:270px;resize:none;border:3px solid var(--ink);padding:13px;font:1rem/1.5 Georgia,serif;outline:none;box-shadow:4px 4px #111}@media(max-width:650px){body{padding:12px 8px}main{box-shadow:6px 6px #111}header,.nav,.view{padding-left:16px;padding-right:16px}.sync{align-items:flex-start;flex-direction:column}.sync form{width:100%}.sync input{width:100%}.notes-layout{grid-template-columns:1fr}.note-list{border-right:0;border-bottom:3px solid var(--ink)}}
-</style><style>.login-screen{width:min(100%,490px);margin:10vh auto;border:4px solid var(--ink);background:var(--paper);box-shadow:10px 10px #111;padding:30px;text-align:center}.login-screen h2{display:inline-block;margin:0 0 14px;padding:5px 10px;border:3px solid var(--ink);background:var(--blue);color:#fff;font:2.4rem Impact,"Arial Black",sans-serif;text-transform:uppercase;text-shadow:2px 2px #111}.login-screen p{font:italic 1rem/1.5 Georgia,serif}.login-screen form{display:flex;flex-direction:column;gap:11px;margin-top:20px}.login-screen input{border:3px solid var(--ink);padding:12px;font:1rem inherit;box-shadow:4px 4px #111}.login-message{min-height:1.4em;margin-top:16px;font-weight:800;font-size:.85rem}.login-screen small{display:block;margin-top:18px;color:#555}</style></head><body data-view="todos"><main id="app-shell" class="hidden"><div class="stripe"></div><header><h1>Organiseur <small>MD</small></h1><section class="sync"><span id="sync-status">Chargement…</span><button id="signout" class="hidden" type="button">Déconnexion</button></section></header><nav class="nav"><a href="#todos" data-link="todos">✓ Tâches</a><a href="#notes" data-link="notes">✎ Notes</a></nav>
-<section id="todos" class="view"><div class="tools"><h2>Mes tâches</h2><button id="clear-done" class="alt" type="button">Effacer terminées</button></div><form id="task-form" class="task-form"><input id="task-input" maxlength="180" placeholder="Ajouter une tâche…" required><button>Ajouter</button></form><ul id="task-list"></ul><p id="tasks-empty" class="empty">Aucune tâche. À l’aventure !</p></section>
-<section id="notes" class="view hidden"><div class="tools"><h2>Mes notes</h2><button id="new-note" class="add" type="button">+ Nouvelle note</button></div><div class="notes-layout"><aside class="note-list"><div id="notes-list"></div><p id="notes-empty" class="empty">Aucune note.</p></aside><article class="editor"><div class="editor-top"><span id="save-state" class="saved">Prêt</span><button id="delete-note" class="delete hidden" type="button">Supprimer</button></div><input id="note-title" class="hidden" placeholder="Titre de la note"><textarea id="note-content" class="hidden" placeholder="Écrivez librement…"></textarea><p id="editor-empty" class="empty">Choisissez une note ou créez-en une.</p></article></div></section>
-</main><section id="login-screen" class="login-screen"><button id="theme-toggle-login" class="theme-toggle" type="button">☾ Mode sombre</button><h2>Accès privé</h2><p>Connectez-vous avec votre e-mail pour accéder à vos tâches et à vos notes synchronisées.</p><form id="login-form"><input id="login-email" type="email" autocomplete="email" placeholder="votre@email.com" required><button type="submit">Recevoir mon lien</button></form><p id="login-message" class="login-message"></p><small>Connexion sécurisée par Supabase. Aucun mot de passe à retenir.</small></section><style>body.dark{--ink:#f8f1dc;--paper:#202535;--mint:#244b50;background-color:#202535;background-image:radial-gradient(#f8f1dc 1px,transparent 1.5px)}body.dark main{box-shadow:10px 10px #06070b}body.dark .sync{background:#26374d}body.dark .task{background:#30394c;box-shadow:4px 4px #06070b}body.dark .task.done{background:#4a5060;color:#e7eaf1}body.dark .note-list{background:#3e3930}body.dark .note-card{background:#30394c;color:#f8f1dc;box-shadow:3px 3px #06070b}body.dark .note-card.selected{background:#244b50}body.dark .note-card span,body.dark .empty,body.dark .login-screen small{color:#d3d9e7}body.dark .task-form input,body.dark .login-screen input,body.dark #note-content{background:#30394c;color:#f8f1dc;box-shadow:4px 4px #06070b}body.dark #note-title{background:transparent;color:#f8f1dc}body.dark input::placeholder,body.dark textarea::placeholder{color:#d3d9e7;opacity:1}.theme-toggle{margin:0 0 22px auto;display:block;background:var(--yellow);color:#111}</style><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="./supabase-config.js"></script><script src="./app.js"></script></body></html>
+<!-- index.html : structure visuelle, style BD/MD et formulaires. Les id sont lus par app.js. -->
+<!doctype html>
+<html lang="fr">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Mon Organiseur</title>
+    <style>
+        :root {
+            --ink: #121212;
+            --red: #ed3b33;
+            --yellow: #ffd52e;
+            --blue: #22a9e8;
+            --paper: #fffdf4;
+            --mint: #b9e8dc
+        }
+
+        * {
+            box-sizing: border-box
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            padding: 28px 16px;
+            background: var(--yellow) radial-gradient(#121212 1px, transparent 1.5px);
+            background-size: 9px 9px;
+            color: var(--ink);
+            font-family: "Trebuchet MS", Arial, sans-serif
+        }
+
+        main {
+            width: min(100%, 900px);
+            min-height: 620px;
+            margin: auto;
+            border: 4px solid var(--ink);
+            background: var(--paper);
+            box-shadow: 10px 10px 0 var(--ink)
+        }
+
+        .stripe {
+            height: 18px;
+            background: repeating-linear-gradient(135deg, var(--red) 0 12px, var(--ink) 12px 16px, var(--yellow) 16px 28px, var(--ink) 28px 32px)
+        }
+
+        header {
+            padding: 20px 26px 12px;
+            border-bottom: 3px solid var(--ink)
+        }
+
+        h1 {
+            display: inline-block;
+            margin: 0;
+            padding: 4px 10px 2px;
+            border: 3px solid var(--ink);
+            background: var(--blue);
+            color: white;
+            font: clamp(2rem, 6vw, 3.25rem)/1 Impact, "Arial Black", sans-serif;
+            letter-spacing: .03em;
+            text-transform: uppercase;
+            text-shadow: 2px 2px #111;
+            transform: rotate(-1.5deg)
+        }
+
+        h1 small {
+            font: 800 .28em "Trebuchet MS", Arial;
+            color: #111;
+            text-shadow: none;
+            vertical-align: middle
+        }
+
+        .sync,
+        .nav,
+        .tools {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px
+        }
+
+        .sync {
+            margin-top: 15px;
+            padding: 8px 10px;
+            border: 2px solid var(--ink);
+            background: #e8f7ff;
+            font-size: .78rem;
+            font-weight: 800
+        }
+
+        .sync form {
+            display: flex;
+            gap: 7px
+        }
+
+        .sync input {
+            width: 200px;
+            padding: 6px;
+            border: 2px solid var(--ink);
+            font: inherit
+        }
+
+        .nav {
+            justify-content: flex-start;
+            padding: 12px 26px;
+            border-bottom: 3px solid var(--ink);
+            background: var(--mint)
+        }
+
+        .nav a,
+        button {
+            border: 2px solid var(--ink);
+            background: var(--red);
+            box-shadow: 3px 3px #111;
+            color: white;
+            padding: 8px 11px;
+            font: 900 .75rem "Trebuchet MS", Arial;
+            letter-spacing: .03em;
+            text-decoration: none;
+            text-transform: uppercase;
+            cursor: pointer
+        }
+
+        .nav a.active {
+            background: var(--yellow);
+            color: #111;
+            transform: translate(2px, 2px);
+            box-shadow: 1px 1px #111
+        }
+
+        button.alt {
+            background: var(--yellow);
+            color: #111
+        }
+
+        .view {
+            padding: 25px
+        }
+
+        .hidden {
+            display: none !important
+        }
+
+        .tools {
+            margin-bottom: 16px
+        }
+
+        .tools h2 {
+            margin: 0;
+            font: 900 1rem "Arial Black", sans-serif;
+            text-transform: uppercase
+        }
+
+        .add {
+            background: var(--red)
+        }
+
+        .task-form {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px
+        }
+
+        .task-form input {
+            flex: 1;
+            min-width: 0;
+            border: 3px solid var(--ink);
+            padding: 12px;
+            font: 700 1rem inherit;
+            box-shadow: 4px 4px #111
+        }
+
+        ul {
+            margin: 0;
+            padding: 0;
+            list-style: none;
+            display: grid;
+            gap: 10px
+        }
+
+        .task {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border: 3px solid var(--ink);
+            padding: 12px;
+            background: white;
+            box-shadow: 4px 4px #111;
+            font-weight: 700
+        }
+
+        .task.done {
+            background: #ddd;
+            text-decoration: line-through;
+            color: #666
+        }
+
+        .task input {
+            width: 21px;
+            height: 21px;
+            accent-color: var(--red)
+        }
+
+        .task span {
+            flex: 1;
+            overflow-wrap: anywhere
+        }
+
+        .delete {
+            padding: 2px 7px;
+            background: var(--yellow);
+            color: #111
+        }
+
+        .empty {
+            padding: 36px 8px;
+            text-align: center;
+            font: italic 1.05rem Georgia, serif;
+            color: #555
+        }
+
+        .notes-layout {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            min-height: 420px;
+            border: 3px solid var(--ink)
+        }
+
+        .note-list {
+            padding: 13px;
+            background: #fff2ad;
+            border-right: 3px solid var(--ink)
+        }
+
+        .note-card {
+            width: 100%;
+            margin-bottom: 8px;
+            border: 2px solid var(--ink);
+            background: #fff;
+            padding: 9px;
+            text-align: left;
+            box-shadow: 3px 3px #111;
+            font: inherit;
+            cursor: pointer
+        }
+
+        .note-card.selected {
+            background: var(--mint);
+            transform: translate(2px, 2px);
+            box-shadow: 1px 1px #111
+        }
+
+        .note-card strong,
+        .note-card span {
+            display: block;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap
+        }
+
+        .note-card span {
+            margin-top: 4px;
+            font: italic .78rem Georgia;
+            color: #555
+        }
+
+        .editor {
+            display: flex;
+            flex-direction: column;
+            padding: 16px
+        }
+
+        .editor-top {
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 3px solid var(--ink);
+            padding-bottom: 9px
+        }
+
+        .saved {
+            font: 800 .72rem "Trebuchet MS", Arial;
+            text-transform: uppercase
+        }
+
+        #note-title {
+            margin: 14px 0 9px;
+            border: 0;
+            border-bottom: 3px solid var(--ink);
+            padding: 4px 0;
+            font: 900 2rem Impact, "Arial Black", sans-serif;
+            outline: none
+        }
+
+        #note-content {
+            flex: 1;
+            min-height: 270px;
+            resize: none;
+            border: 3px solid var(--ink);
+            padding: 13px;
+            font: 1rem/1.5 Georgia, serif;
+            outline: none;
+            box-shadow: 4px 4px #111
+        }
+
+        @media(max-width:650px) {
+            body {
+                padding: 12px 8px
+            }
+
+            main {
+                box-shadow: 6px 6px #111
+            }
+
+            header,
+            .nav,
+            .view {
+                padding-left: 16px;
+                padding-right: 16px
+            }
+
+            .sync {
+                align-items: flex-start;
+                flex-direction: column
+            }
+
+            .sync form {
+                width: 100%
+            }
+
+            .sync input {
+                width: 100%
+            }
+
+            .notes-layout {
+                grid-template-columns: 1fr;
+                min-height: 0
+            }
+
+            .note-list {
+                border-right: 0;
+                border-bottom: 3px solid var(--ink);
+                max-height: 36vh;
+                overflow-y: auto
+            }
+
+            /* Sur téléphone, les contrôles prennent une ligne complète : pas de débordement. */
+            .nav,
+            .tools,
+            .editor-top {
+                flex-wrap: wrap
+            }
+
+            .tools {
+                align-items: flex-start
+            }
+
+            .task-form {
+                flex-direction: column
+            }
+
+            .task-form button {
+                width: 100%
+            }
+
+            .editor {
+                min-width: 0;
+                padding: 12px
+            }
+
+            #note-title {
+                width: 100%;
+                min-width: 0;
+                font-size: clamp(1.45rem, 8vw, 2rem)
+            }
+
+            #note-content {
+                width: 100%;
+                min-height: 38vh;
+                max-height: 58vh
+            }
+
+            .note-card {
+                max-width: 100%
+            }
+        }
+
+        @media(max-width:380px) {
+            header,
+            .nav,
+            .view {
+                padding-left: 12px;
+                padding-right: 12px
+            }
+
+            h1 {
+                font-size: 1.8rem
+            }
+
+            .nav a,
+            button {
+                padding: 8px 9px;
+                font-size: .7rem
+            }
+        }
+    </style>
+    <style>
+        .login-screen {
+            width: min(100%, 490px);
+            margin: 10vh auto;
+            border: 4px solid var(--ink);
+            background: var(--paper);
+            box-shadow: 10px 10px #111;
+            padding: 30px;
+            text-align: center
+        }
+
+        .login-screen h2 {
+            display: inline-block;
+            margin: 0 0 14px;
+            padding: 5px 10px;
+            border: 3px solid var(--ink);
+            background: var(--blue);
+            color: #fff;
+            font: 2.4rem Impact, "Arial Black", sans-serif;
+            text-transform: uppercase;
+            text-shadow: 2px 2px #111
+        }
+
+        .login-screen p {
+            font: italic 1rem/1.5 Georgia, serif
+        }
+
+        .login-screen form {
+            display: flex;
+            flex-direction: column;
+            gap: 11px;
+            margin-top: 20px
+        }
+
+        .login-screen input {
+            border: 3px solid var(--ink);
+            padding: 12px;
+            font: 1rem inherit;
+            box-shadow: 4px 4px #111
+        }
+
+        .login-message {
+            min-height: 1.4em;
+            margin-top: 16px;
+            font-weight: 800;
+            font-size: .85rem
+        }
+
+        .login-screen small {
+            display: block;
+            margin-top: 18px;
+            color: #555
+        }
+    </style>
+</head>
+
+<body data-view="todos">
+    <main id="app-shell" class="hidden">
+        <div class="stripe"></div>
+        <header>
+            <h1>Organiseur <small>MD</small></h1>
+            <section class="sync"><span id="sync-status">Chargement…</span><button id="signout" class="hidden"
+                    type="button">Déconnexion</button></section>
+        </header>
+        <nav class="nav"><a href="#todos" data-link="todos">✓ Tâches</a><a href="#notes" data-link="notes">✎ Notes</a>
+        </nav>
+        <section id="todos" class="view">
+            <div class="tools">
+                <h2>Mes tâches</h2><button id="clear-done" class="alt" type="button">Effacer terminées</button>
+            </div>
+            <form id="task-form" class="task-form"><input id="task-input" maxlength="180"
+                    placeholder="Ajouter une tâche…" required><button>Ajouter</button></form>
+            <ul id="task-list"></ul>
+            <p id="tasks-empty" class="empty">Aucune tâche. À l’aventure !</p>
+        </section>
+        <section id="notes" class="view hidden">
+            <div class="tools">
+                <h2>Mes notes</h2><button id="new-note" class="add" type="button">+ Nouvelle note</button>
+            </div>
+            <div class="notes-layout">
+                <aside class="note-list">
+                    <div id="notes-list"></div>
+                    <p id="notes-empty" class="empty">Aucune note.</p>
+                </aside>
+                <article class="editor">
+                    <div class="editor-top"><span id="save-state" class="saved">Prêt</span><button id="delete-note"
+                            class="delete hidden" type="button">Supprimer</button></div><input id="note-title"
+                        class="hidden" placeholder="Titre de la note"><textarea id="note-content" class="hidden"
+                        placeholder="Écrivez librement…"></textarea>
+                    <p id="editor-empty" class="empty">Choisissez une note ou créez-en une.</p>
+                </article>
+            </div>
+        </section>
+    </main>
+    <section id="login-screen" class="login-screen"><button id="theme-toggle-login" class="theme-toggle" type="button">☾
+            Mode sombre</button>
+        <h2>Accès privé</h2>
+        <p>Connectez-vous avec votre e-mail pour accéder à vos tâches et à vos notes synchronisées.</p>
+        <form id="login-form"><input id="login-email" type="email" autocomplete="email" placeholder="votre@email.com"
+                required><button type="submit">Recevoir mon lien</button></form>
+        <p id="login-message" class="login-message"></p><small>Connexion sécurisée par Supabase. Aucun mot de passe à
+            retenir.</small>
+    </section>
+    <style>
+        body.dark {
+            --ink: #f8f1dc;
+            --paper: #202535;
+            --mint: #244b50;
+            background-color: #202535;
+            background-image: radial-gradient(#f8f1dc 1px, transparent 1.5px)
+        }
+
+        body.dark main {
+            box-shadow: 10px 10px #06070b
+        }
+
+        body.dark .sync {
+            background: #26374d
+        }
+
+        body.dark .task {
+            background: #30394c;
+            box-shadow: 4px 4px #06070b
+        }
+
+        body.dark .task.done {
+            background: #4a5060;
+            color: #e7eaf1
+        }
+
+        body.dark .note-list {
+            background: #3e3930
+        }
+
+        body.dark .note-card {
+            background: #30394c;
+            color: #f8f1dc;
+            box-shadow: 3px 3px #06070b
+        }
+
+        body.dark .note-card.selected {
+            background: #244b50
+        }
+
+        body.dark .note-card span,
+        body.dark .empty,
+        body.dark .login-screen small {
+            color: #d3d9e7
+        }
+
+        body.dark .task-form input,
+        body.dark .login-screen input,
+        body.dark #note-content {
+            background: #30394c;
+            color: #f8f1dc;
+            box-shadow: 4px 4px #06070b
+        }
+
+        body.dark #note-title {
+            background: transparent;
+            color: #f8f1dc
+        }
+
+        body.dark input::placeholder,
+        body.dark textarea::placeholder {
+            color: #d3d9e7;
+            opacity: 1
+        }
+
+        .theme-toggle {
+            margin: 0 0 22px auto;
+            display: block;
+            background: var(--yellow);
+            color: #111
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="./supabase-config.js"></script>
+    <script src="./app.js"></script>
+</body>
+
+</html>
