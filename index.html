@@ -8,12 +8,16 @@
     <title>Mon Organiseur</title>
     <style>
         :root {
-            --ink: #121212;
-            --red: #ed3b33;
-            --yellow: #ffd52e;
-            --blue: #22a9e8;
-            --paper: #fffdf4;
-            --mint: #b9e8dc
+            /* Palette : bleu nuit, vermillon, ocre et papier ivoire. */
+            --ink: #13263d;
+            --red: #b9363f;
+            --yellow: #d5a72d;
+            --blue: #1d4e7a;
+            --paper: #f5eedc;
+            --mint: #c5d1bd;
+            --panel: #ddca83;
+            --muted: #665e4e;
+            --shadow: #0b1929
         }
 
         * {
@@ -24,8 +28,8 @@
             margin: 0;
             min-height: 100vh;
             padding: 28px 16px;
-            background: var(--yellow) radial-gradient(#121212 1px, transparent 1.5px);
-            background-size: 9px 9px;
+            background: #cda43c radial-gradient(rgba(19, 38, 61, .22) 1px, transparent 1.5px);
+            background-size: 14px 14px;
             color: var(--ink);
             font-family: "Trebuchet MS", Arial, sans-serif
         }
@@ -36,14 +40,14 @@
             margin: auto;
             border: 4px solid var(--ink);
             background: var(--paper);
-            box-shadow: 10px 10px 0 var(--ink);
+            box-shadow: 9px 9px 0 var(--shadow);
             display: flex;
             flex-direction: column
         }
 
         .stripe {
-            height: 18px;
-            background: repeating-linear-gradient(135deg, var(--red) 0 12px, var(--ink) 12px 16px, var(--yellow) 16px 28px, var(--ink) 28px 32px)
+            height: 14px;
+            background: repeating-linear-gradient(135deg, var(--red) 0 16px, var(--yellow) 16px 29px, var(--blue) 29px 43px)
         }
 
         header {
@@ -57,17 +61,17 @@
             padding: 4px 10px 2px;
             border: 3px solid var(--ink);
             background: var(--blue);
-            color: white;
+            color: #f9f1dd;
             font: clamp(2rem, 6vw, 3.25rem)/1 Impact, "Arial Black", sans-serif;
             letter-spacing: .03em;
             text-transform: uppercase;
-            text-shadow: 2px 2px #111;
-            transform: rotate(-1.5deg)
+            text-shadow: 2px 2px var(--shadow);
+            transform: rotate(-.8deg)
         }
 
         h1 small {
             font: 800 .28em "Trebuchet MS", Arial;
-            color: #111;
+            color: #f5d46b;
             text-shadow: none;
             vertical-align: middle
         }
@@ -85,8 +89,8 @@
             margin-top: 3px;
             border: 3px solid var(--ink);
             background: var(--yellow);
-            color: #111;
-            box-shadow: 3px 3px #111;
+            color: var(--ink);
+            box-shadow: 3px 3px var(--shadow);
             padding: 7px 9px 5px;
             font: 900 .9rem/1 "Arial Black", Impact, sans-serif;
             letter-spacing: .06em
@@ -105,7 +109,7 @@
             margin-top: 15px;
             padding: 8px 10px;
             border: 2px solid var(--ink);
-            background: #e8f7ff;
+            background: #dce4d7;
             font-size: .78rem;
             font-weight: 800
         }
@@ -131,15 +135,15 @@
             justify-content: flex-start;
             padding: 12px 26px;
             border-bottom: 3px solid var(--ink);
-            background: var(--mint)
+            background: var(--blue)
         }
 
         .nav a,
         button {
             border: 2px solid var(--ink);
             background: var(--red);
-            box-shadow: 3px 3px #111;
-            color: white;
+            box-shadow: 3px 3px var(--shadow);
+            color: #fff6e3;
             padding: 8px 11px;
             font: 900 .75rem "Trebuchet MS", Arial;
             letter-spacing: .03em;
@@ -148,16 +152,43 @@
             cursor: pointer
         }
 
+        button:hover,
+        .nav a:hover {
+            filter: brightness(1.07)
+        }
+
+        button:focus-visible,
+        a:focus-visible,
+        input:focus-visible,
+        textarea:focus-visible {
+            outline: 3px solid var(--yellow);
+            outline-offset: 2px
+        }
+
         .nav a.active {
             background: var(--yellow);
-            color: #111;
+            color: var(--ink);
             transform: translate(2px, 2px);
-            box-shadow: 1px 1px #111
+            box-shadow: 1px 1px var(--shadow)
+        }
+
+        /* Navigation sobre : les boutons d'action gardent le rouge, pas les onglets. */
+        .nav a {
+            background: transparent;
+            border-color: transparent;
+            box-shadow: none;
+            color: #fff3d8;
+            padding-left: 8px;
+            padding-right: 8px
+        }
+
+        .nav a:hover {
+            background: rgba(245, 238, 220, .12)
         }
 
         button.alt {
             background: var(--yellow);
-            color: #111
+            color: var(--ink)
         }
 
         .view {
@@ -194,7 +225,9 @@
             border: 3px solid var(--ink);
             padding: 12px;
             font: 700 1rem inherit;
-            box-shadow: 4px 4px #111
+            background: #fff9e9;
+            color: var(--ink);
+            box-shadow: 4px 4px var(--shadow)
         }
 
         ul {
@@ -210,21 +243,27 @@
             padding-right: 7px
         }
 
+        ul,
+        .note-list {
+            scrollbar-color: var(--blue) transparent;
+            scrollbar-width: thin
+        }
+
         .task {
             display: flex;
             align-items: center;
             gap: 12px;
             border: 3px solid var(--ink);
             padding: 12px;
-            background: white;
-            box-shadow: 4px 4px #111;
+            background: #fff9e9;
+            box-shadow: 4px 4px var(--shadow);
             font-weight: 700
         }
 
         .task.done {
-            background: #ddd;
+            background: #ded6bf;
             text-decoration: line-through;
-            color: #666
+            color: #665e4e
         }
 
         .task input {
@@ -241,14 +280,14 @@
         .delete {
             padding: 2px 7px;
             background: var(--yellow);
-            color: #111
+            color: var(--ink)
         }
 
         .empty {
             padding: 36px 8px;
             text-align: center;
             font: italic 1.05rem Georgia, serif;
-            color: #555
+            color: var(--muted)
         }
 
         .notes-layout {
@@ -260,7 +299,7 @@
 
         .note-list {
             padding: 13px;
-            background: #fff2ad;
+            background: var(--panel);
             border-right: 3px solid var(--ink);
             /* La liste défile indépendamment : l'éditeur reste accessible. */
             max-height: 560px;
@@ -273,10 +312,10 @@
             width: 100%;
             margin-bottom: 8px;
             border: 2px solid var(--ink);
-            background: #fff;
+            background: #fff9e9;
             padding: 9px;
             text-align: left;
-            box-shadow: 3px 3px #111;
+            box-shadow: 3px 3px var(--shadow);
             font: inherit;
             cursor: pointer
         }
@@ -305,7 +344,7 @@
         .note-card.selected {
             background: var(--mint);
             transform: translate(2px, 2px);
-            box-shadow: 1px 1px #111
+            box-shadow: 1px 1px var(--shadow)
         }
 
         .note-card strong,
@@ -319,7 +358,7 @@
         .note-card span {
             margin-top: 4px;
             font: italic .78rem Georgia;
-            color: #555
+            color: var(--muted)
         }
 
         .editor {
@@ -346,7 +385,9 @@
             border-bottom: 3px solid var(--ink);
             padding: 4px 0;
             font: 900 2rem Impact, "Arial Black", sans-serif;
-            outline: none
+            outline: none;
+            color: var(--ink);
+            background: transparent
         }
 
         #note-content {
@@ -357,7 +398,9 @@
             padding: 13px;
             font: 1rem/1.5 Georgia, serif;
             outline: none;
-            box-shadow: 4px 4px #111
+            background: #fff9e9;
+            color: var(--ink);
+            box-shadow: 4px 4px var(--shadow)
         }
 
         @media(max-width:650px) {
@@ -366,7 +409,7 @@
             }
 
             main {
-                box-shadow: 6px 6px #111
+                box-shadow: 6px 6px var(--shadow)
             }
 
             main > .sync {
@@ -480,7 +523,7 @@
             margin: 10vh auto;
             border: 4px solid var(--ink);
             background: var(--paper);
-            box-shadow: 10px 10px #111;
+            box-shadow: 9px 9px var(--shadow);
             padding: 30px;
             text-align: center
         }
@@ -494,7 +537,7 @@
             color: #fff;
             font: 2.4rem Impact, "Arial Black", sans-serif;
             text-transform: uppercase;
-            text-shadow: 2px 2px #111
+            text-shadow: 2px 2px var(--shadow)
         }
 
         .login-screen p {
@@ -512,7 +555,9 @@
             border: 3px solid var(--ink);
             padding: 12px;
             font: 1rem inherit;
-            box-shadow: 4px 4px #111
+            background: #fff9e9;
+            color: var(--ink);
+            box-shadow: 4px 4px var(--shadow)
         }
 
         .login-message {
@@ -525,7 +570,7 @@
         .login-screen small {
             display: block;
             margin-top: 18px;
-            color: #555
+            color: var(--muted)
         }
     </style>
 </head>
@@ -583,67 +628,70 @@
     </section>
     <style>
         body.dark {
-            --ink: #f8f1dc;
-            --paper: #202535;
-            --mint: #244b50;
-            background-color: #202535;
-            background-image: radial-gradient(#f8f1dc 1px, transparent 1.5px)
+            --ink: #f6e9ca;
+            --paper: #172b42;
+            --mint: #2d5354;
+            --panel: #343646;
+            --muted: #d7cba9;
+            --shadow: #07111e;
+            background-color: #14243a;
+            background-image: radial-gradient(rgba(246, 233, 202, .28) 1px, transparent 1.5px)
         }
 
         body.dark main {
-            box-shadow: 10px 10px #06070b
+            box-shadow: 9px 9px var(--shadow)
         }
 
         body.dark .sync {
-            background: #26374d
+            background: #29414b
         }
 
         body.dark .task {
-            background: #30394c;
-            box-shadow: 4px 4px #06070b
+            background: #263c56;
+            box-shadow: 4px 4px var(--shadow)
         }
 
         body.dark .task.done {
-            background: #4a5060;
-            color: #e7eaf1
+            background: #475163;
+            color: #e6d9bd
         }
 
         body.dark .note-list {
-            background: #3e3930
+            background: var(--panel)
         }
 
         body.dark .note-card {
-            background: #30394c;
-            color: #f8f1dc;
-            box-shadow: 3px 3px #06070b
+            background: #263c56;
+            color: var(--ink);
+            box-shadow: 3px 3px var(--shadow)
         }
 
         body.dark .note-card.selected {
-            background: #244b50
+            background: var(--mint)
         }
 
         body.dark .note-card span,
         body.dark .empty,
         body.dark .login-screen small {
-            color: #d3d9e7
+            color: var(--muted)
         }
 
         body.dark .task-form input,
         body.dark .login-screen input,
         body.dark #note-content {
-            background: #30394c;
-            color: #f8f1dc;
-            box-shadow: 4px 4px #06070b
+            background: #263c56;
+            color: var(--ink);
+            box-shadow: 4px 4px var(--shadow)
         }
 
         body.dark #note-title {
             background: transparent;
-            color: #f8f1dc
+            color: var(--ink)
         }
 
         body.dark input::placeholder,
         body.dark textarea::placeholder {
-            color: #d3d9e7;
+            color: var(--muted);
             opacity: 1
         }
 
@@ -651,7 +699,7 @@
             margin: 0 0 22px auto;
             display: block;
             background: var(--yellow);
-            color: #111
+            color: var(--ink)
         }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
