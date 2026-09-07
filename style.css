@@ -265,8 +265,9 @@
 
         .calendar-heading {
             display: grid;
-            grid-template-columns: 1fr auto 1fr;
-            align-items: end;
+            grid-template-columns: 1fr;
+            justify-items: center;
+            gap: 2px;
             margin: 0;
             padding: 0 2px 8px;
             border-bottom: 2px solid var(--ink);
@@ -307,17 +308,16 @@
         .calendar-year {
             margin: 0;
             color: var(--ink);
-            font: 900 clamp(1rem, 4vw, 1.6rem)/1 Impact, "Arial Black", sans-serif;
+            font: 900 clamp(1.25rem, 4vw, 1.7rem)/1 Impact, "Arial Black", sans-serif;
             letter-spacing: .08em;
             text-transform: uppercase
         }
 
-        .calendar-year { text-align: right }
-
-        .calendar-number {
-            margin: 0;
-            color: var(--blue);
-            font: 900 clamp(2.9rem, 11vw, 4.6rem)/.8 Impact, "Arial Black", sans-serif
+        .calendar-year {
+            color: var(--red);
+            font-size: .75rem;
+            letter-spacing: .22em;
+            text-align: center;
         }
 
         /* Date du jour : le cartouche éditorial juste avant la grille. */
@@ -678,11 +678,6 @@
 
         .calendar-month-name,
         .calendar-year { text-shadow: 1px 1px rgba(255,255,255,.7) }
-
-        .calendar-number {
-            color: var(--red);
-            text-shadow: 2px 2px #f3cf58;
-        }
 
         .calendar-day {
             background: rgba(255,255,255,.22);

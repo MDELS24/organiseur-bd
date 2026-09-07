@@ -102,7 +102,6 @@ function renderCalendar() {
   const gridStart = new Date(year, month, 1 - mondayOffset);
 
   $("#calendar-month").textContent = MONTHS[month];
-  $("#calendar-number").textContent = String(month + 1).padStart(2, "0");
   $("#calendar-year").textContent = year;
   $("#calendar-full-date").textContent = new Intl.DateTimeFormat("fr-FR", {
     weekday: "long", day: "numeric", month: "long", year: "numeric"
