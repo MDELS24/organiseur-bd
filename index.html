@@ -36,7 +36,9 @@
             margin: auto;
             border: 4px solid var(--ink);
             background: var(--paper);
-            box-shadow: 10px 10px 0 var(--ink)
+            box-shadow: 10px 10px 0 var(--ink);
+            display: flex;
+            flex-direction: column
         }
 
         .stripe {
@@ -106,6 +108,11 @@
             background: #e8f7ff;
             font-size: .78rem;
             font-weight: 800
+        }
+
+        /* Enfant direct de main : la zone devient un pied de page souple. */
+        main > .sync {
+            margin: auto 25px 25px
         }
 
         .sync form {
@@ -340,6 +347,10 @@
                 box-shadow: 6px 6px #111
             }
 
+            main > .sync {
+                margin: auto 16px 16px
+            }
+
             header,
             .nav,
             .view {
@@ -505,8 +516,6 @@
                     aria-label="Heure actuelle">--:--</time></div>
             <!-- Secours immédiat : l'heure apparaît même si un ancien app.js est gardé en cache. -->
             <script>document.querySelector('#clock').textContent=new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});</script>
-            <section class="sync"><span id="sync-status">Chargement…</span><button id="signout" class="hidden"
-                    type="button">Déconnexion</button></section>
         </header>
         <nav class="nav"><a href="#todos" data-link="todos">✓ Tâches</a><a href="#notes" data-link="notes">✎ Notes</a>
         </nav>
@@ -530,13 +539,16 @@
                 </aside>
                 <article class="editor">
                     <div class="editor-top"><span id="save-state" class="saved">Prêt</span><button id="delete-note"
-                            class="delete hidden" type="button">Supprimer</button></div><input id="note-title"
+                            class="delete hidden" type="button" aria-label="Supprimer cette note" title="Supprimer cette note">×</button></div><input id="note-title"
                         class="hidden" placeholder="Titre de la note"><textarea id="note-content" class="hidden"
                         placeholder="Écrivez librement…"></textarea>
                     <p id="editor-empty" class="empty">Choisissez une note ou créez-en une.</p>
                 </article>
             </div>
         </section>
+        <!-- Zone d'état placée volontairement après le contenu, en bas de la page. -->
+        <section class="sync"><span id="sync-status">Chargement…</span><button id="signout" class="hidden"
+                type="button">Déconnexion</button></section>
     </main>
     <section id="login-screen" class="login-screen"><button id="theme-toggle-login" class="theme-toggle" type="button">☾
             Mode sombre</button>
