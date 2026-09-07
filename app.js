@@ -11,7 +11,8 @@ const MONTHS = ["JANVIER", "FÉVRIER", "MARS", "AVRIL", "MAI", "JUIN", "JUILLET"
 
 let tasks = [], notes = [], selectedNoteId = null, user = null, noteTimer = null, todoChannel = null, noteChannel = null;
 let calendarCursor = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-let emailCooldownTimer = null, bubbleTimer = null, bubbleScore = 0;
+let emailCooldownTimer = null, bubbleTimer = null, bubbleScore = 0, completedMissions = 0;
+let cipher = ["✦", "◈", "⌁"];
 
 // --- IndexedDB : la copie locale et la file d'attente hors ligne. ---
 function openDb() {
@@ -55,6 +56,7 @@ function account(sessionUser) {
   $("#login-screen").classList.toggle("hidden", !!user);
   $("#app-shell").classList.toggle("hidden", !user);
   $("#signout").classList.toggle("hidden", !user);
+  if (user) pauseWaitGame(); else startWaitGame();
   status(!configured ? "Erreur" : user ? "Synchronisé" : "Connexion requise");
   if (!configured) $("#login-message").textContent = "La configuration Supabase est indisponible.";
 }
@@ -162,28 +164,55 @@ function isoWeekNumber(date) {
   return Math.ceil(((copy - yearStart) / 86400000 + 1) / 7);
 }
 
-// --- Connexion : délai local et mini-jeu, afin d'éviter les demandes de liens répétées. ---
-function stopWaitGame() {
-  clearInterval(bubbleTimer); bubbleTimer = null;
-  $("#bubble-field").replaceChildren();
-  $("#wait-game").classList.add("hidden");
+// --- Connexion : une transmission chiffrée à reconstituer, même hors ligne. ---
+function makeCipher() {
+  const symbols = ["✦", "◈", "⌁", "⌘"];
+  cipher = Array.from({ length: 3 }, () => symbols[Math.floor(Math.random() * symbols.length)]);
+}
+function updateGameStats(message) {
+  $("#wait-score").textContent = bubbleScore;
+  $("#code-sequence").textContent = cipher.join(" · ");
+  $("#mission-count").textContent = completedMissions;
+  if (message) $("#wait-game-message").textContent = message;
 }
 function addBubble() {
   const field = $("#bubble-field");
   if (field.children.length >= 6) field.firstElementChild.remove();
   const bubble = document.createElement("button");
-  bubble.type = "button"; bubble.className = "comic-bubble"; bubble.textContent = "✦";
+  const alert = Math.random() < .18;
+  const clues = ["✦", "⌁", "◈", "⌘"];
+  const symbol = alert ? "!" : clues[Math.floor(Math.random() * clues.length)];
+  bubble.type = "button"; bubble.className = `comic-bubble${alert ? " alert" : ""}`; bubble.textContent = symbol;
   bubble.style.left = `${5 + Math.random() * 80}%`;
-  bubble.setAttribute("aria-label", "Éclater une bulle");
-  bubble.onclick = () => { bubbleScore += 1; $("#wait-score").textContent = bubbleScore; bubble.remove(); };
+  bubble.setAttribute("aria-label", alert ? "Alerte à éviter" : `Indice ${symbol}`);
+  bubble.onclick = () => {
+    if (alert) {
+      bubbleScore = 0;
+      updateGameStats("Alerte ! La transmission doit être recommencée.");
+    } else if (symbol === cipher[bubbleScore]) {
+      bubbleScore += 1;
+      if (bubbleScore === cipher.length) {
+        completedMissions += 1; bubbleScore = 0; makeCipher();
+        updateGameStats("Transmission décodée ! Un plan est classé.");
+      } else updateGameStats("Bon fragment : poursuivez la transmission.");
+    } else {
+      bubbleScore = 0;
+      updateGameStats("Mauvais fragment : le code est brouillé.");
+    }
+    bubble.remove();
+  };
   field.append(bubble);
   setTimeout(() => bubble.remove(), 3150);
 }
 function startWaitGame() {
   if (bubbleTimer) return;
-  bubbleScore = 0; $("#wait-score").textContent = bubbleScore;
-  $("#wait-game").classList.remove("hidden");
+  makeCipher();
+  updateGameStats();
   addBubble(); bubbleTimer = setInterval(addBubble, 650);
+}
+function pauseWaitGame() {
+  clearInterval(bubbleTimer); bubbleTimer = null;
+  $("#bubble-field").replaceChildren();
 }
 function updateEmailCooldown() {
   const until = Number(localStorage.getItem(EMAIL_COOLDOWN_KEY) || 0);
@@ -192,11 +221,10 @@ function updateEmailCooldown() {
   if (remaining <= 0) {
     clearInterval(emailCooldownTimer); emailCooldownTimer = null;
     localStorage.removeItem(EMAIL_COOLDOWN_KEY); submit.disabled = false; submit.textContent = "Recevoir mon lien";
-    stopWaitGame(); return;
+    return;
   }
   submit.disabled = true; submit.textContent = `Réessayer dans ${remaining} s`;
   $("#login-message").textContent = `Patientez ${remaining} seconde${remaining > 1 ? "s" : ""} avant une nouvelle demande.`;
-  startWaitGame();
 }
 function startEmailCooldown() {
   localStorage.setItem(EMAIL_COOLDOWN_KEY, String(Date.now() + EMAIL_COOLDOWN_MS));

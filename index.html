@@ -73,9 +73,10 @@
         <form id="login-form"><input id="login-email" type="email" autocomplete="email" placeholder="votre@email.com"
                 required><button id="login-submit" type="submit">Recevoir mon lien</button></form>
         <p id="login-message" class="login-message" aria-live="polite"></p>
-        <section id="wait-game" class="wait-game hidden" aria-labelledby="wait-game-title">
-            <div class="wait-game-top"><h3 id="wait-game-title">Mission patience</h3><p>Score&nbsp;: <strong id="wait-score">0</strong></p></div>
-            <p class="wait-game-instructions">Éclatez les bulles pendant l’attente.</p>
+        <section id="wait-game" class="wait-game" aria-labelledby="wait-game-title">
+            <div class="wait-game-top"><h3 id="wait-game-title">Dossier d’expédition</h3><p>Plans classés&nbsp;: <strong id="mission-count">0</strong></p></div>
+            <p id="wait-game-message" class="wait-game-instructions" aria-live="polite">Reconstituez la transmission : collectez les symboles dans l’ordre.</p>
+            <div class="wait-game-stats"><span>Code <strong id="code-sequence">✦ · ◈ · ⌁</strong></span><span>Fragment <strong id="wait-score">0</strong>/3</span></div>
             <div id="bubble-field" class="bubble-field" aria-label="Bulles à éclater"></div>
         </section>
     </section>

@@ -933,6 +933,25 @@
         .wait-game-top p { font: 800 .75rem/1 "Trebuchet MS", Arial, sans-serif }
         .wait-game-instructions { padding: 7px 2px; color: var(--muted); font: italic .78rem/1.2 Georgia, serif }
 
+        .wait-game-stats {
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+            margin-bottom: 8px;
+            border: 2px solid var(--ink);
+            background: var(--yellow);
+            padding: 4px 7px;
+            color: var(--ink);
+            font: 900 .7rem/1 "Trebuchet MS", Arial, sans-serif;
+            text-transform: uppercase;
+        }
+
+        #code-sequence {
+            color: var(--red);
+            letter-spacing: .08em;
+            white-space: nowrap;
+        }
+
         .bubble-field {
             position: relative;
             height: 142px;
@@ -974,6 +993,7 @@
 
         .comic-bubble:nth-child(3n) { background: #f0ca48 }
         .comic-bubble:nth-child(3n + 2) { background: #d7e0d1 }
+        .comic-bubble.alert { background: var(--red); color: #fffaf0; animation-duration: 2.35s }
         .comic-bubble:active { transform: scale(.82) }
 
         @keyframes bubble-rise {
