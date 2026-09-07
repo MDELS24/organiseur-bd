@@ -93,8 +93,9 @@
             flex: 0 0 auto;
             margin: 3px 0 0 auto;
             padding: 7px 9px 5px;
-            font-size: .68rem;
-            transform: rotate(-1.8deg)
+            font: 900 .72rem/1 "Arial Black", Impact, sans-serif;
+            letter-spacing: .06em;
+            transform: rotate(1.2deg)
         }
 
         .sync,
@@ -185,6 +186,12 @@
 
         .nav a:hover {
             background: rgba(245, 238, 220, .12)
+        }
+
+        .nav #signout {
+            margin-left: auto;
+            padding: 5px 8px;
+            box-shadow: none
         }
 
         button.alt {
@@ -373,6 +380,40 @@
             justify-content: space-between;
             border-bottom: 3px solid var(--ink);
             padding-bottom: 9px
+        }
+
+        /* Icône de synchronisation, discrètement placée sous l'éditeur à droite. */
+        .note-sync {
+            display: flex;
+            justify-content: flex-end;
+            min-height: 25px;
+            padding-top: 8px
+        }
+
+        .sync-icon {
+            display: grid;
+            width: 21px;
+            height: 21px;
+            place-items: center;
+            border: 2px solid var(--ink);
+            background: var(--yellow);
+            color: var(--ink);
+            box-shadow: 2px 2px var(--shadow);
+            font: 900 .8rem/1 "Arial Black", Impact, sans-serif
+        }
+
+        .sync-icon[data-state="working"] {
+            animation: sync-spin 1.1s linear infinite
+        }
+
+        .sync-icon[data-state="offline"],
+        .sync-icon[data-state="error"] {
+            background: var(--red);
+            color: #fff3d8
+        }
+
+        @keyframes sync-spin {
+            to { transform: rotate(360deg) }
         }
 
         .saved {

@@ -20,7 +20,8 @@
             <!-- Secours immédiat : l'heure apparaît même si un ancien app.js est gardé en cache. -->
             <script>document.querySelector('#clock').textContent=new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});</script>
         </header>
-        <nav class="nav"><a href="#todos" data-link="todos">✓ Tâches</a><a href="#notes" data-link="notes">✎ Notes</a>
+        <nav class="nav"><a href="#todos" data-link="todos">✓ Tâches</a><a href="#notes" data-link="notes">✎ Notes</a><button id="signout" class="hidden" type="button"
+                aria-label="Se déconnecter" title="Se déconnecter">↪</button>
         </nav>
         <section id="todos" class="view">
             <div class="tools">
@@ -44,14 +45,12 @@
                     <div class="editor-top"><span id="save-state" class="saved">Prêt</span><button id="delete-note"
                             class="delete hidden" type="button" aria-label="Supprimer cette note" title="Supprimer cette note">×</button></div><input id="note-title"
                         class="hidden" placeholder="Titre de la note"><textarea id="note-content" class="hidden"
-                        placeholder="Écrivez librement…"></textarea>
+                        placeholder="Écrivez librement…"></textarea><div id="note-sync" class="note-sync hidden"><span
+                            id="sync-status" class="sync-icon" role="status" aria-live="polite" title="État de synchronisation">○</span></div>
                     <p id="editor-empty" class="empty">Choisissez une note ou créez-en une.</p>
                 </article>
             </div>
         </section>
-        <!-- Zone d'état placée volontairement après le contenu, en bas de la page. -->
-        <section class="sync"><span id="sync-status">Chargement…</span><button id="signout" class="hidden"
-                type="button">Déconnexion</button></section>
     </main>
     <section id="login-screen" class="login-screen"><button id="theme-toggle-login" class="theme-toggle" type="button">☾
             Mode sombre</button>
