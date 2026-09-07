@@ -11,8 +11,9 @@ const MONTHS = ["JANVIER", "FÉVRIER", "MARS", "AVRIL", "MAI", "JUIN", "JUILLET"
 
 let tasks = [], notes = [], selectedNoteId = null, user = null, noteTimer = null, todoChannel = null, noteChannel = null;
 let calendarCursor = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-let emailCooldownTimer = null, bubbleTimer = null, bubbleScore = 0, completedMissions = 0;
+let emailCooldownTimer = null, bubbleTimer = null, bubbleScore = 0, completedMissions = 0, bubbleSerial = 0;
 let cipher = ["✦", "◈", "⌁"];
+const ARCHIVE_REWARDS = ["Insigne du cartographe", "Lentille de terrain", "Boussole méridienne", "Sceau des archives"];
 
 // --- IndexedDB : la copie locale et la file d'attente hors ligne. ---
 function openDb() {
@@ -175,13 +176,21 @@ function updateGameStats(message) {
   $("#mission-count").textContent = completedMissions;
   if (message) $("#wait-game-message").textContent = message;
 }
+function grantArchiveReward() {
+  const reward = ARCHIVE_REWARDS[(completedMissions - 1) % ARCHIVE_REWARDS.length];
+  const output = $("#mission-reward");
+  output.textContent = `★ Archive ${completedMissions} déverrouillée : ${reward}`;
+  output.hidden = false;
+}
 function addBubble() {
   const field = $("#bubble-field");
   if (field.children.length >= 6) field.firstElementChild.remove();
   const bubble = document.createElement("button");
-  const alert = Math.random() < .18;
   const clues = ["✦", "⌁", "◈", "⌘"];
-  const symbol = alert ? "!" : clues[Math.floor(Math.random() * clues.length)];
+  const mustOfferExpected = bubbleSerial % 3 === 0;
+  bubbleSerial += 1;
+  const alert = !mustOfferExpected && Math.random() < .18;
+  const symbol = alert ? "!" : mustOfferExpected ? cipher[bubbleScore] : clues[Math.floor(Math.random() * clues.length)];
   bubble.type = "button"; bubble.className = `comic-bubble${alert ? " alert" : ""}`; bubble.textContent = symbol;
   bubble.style.left = `${5 + Math.random() * 80}%`;
   bubble.setAttribute("aria-label", alert ? "Alerte à éviter" : `Indice ${symbol}`);
@@ -193,7 +202,8 @@ function addBubble() {
       bubbleScore += 1;
       if (bubbleScore === cipher.length) {
         completedMissions += 1; bubbleScore = 0; makeCipher();
-        updateGameStats("Transmission décodée ! Un plan est classé.");
+        grantArchiveReward();
+        updateGameStats("Transmission décodée ! Votre archive est déverrouillée.");
       } else updateGameStats("Bon fragment : poursuivez la transmission.");
     } else {
       bubbleScore = 0;
@@ -206,7 +216,7 @@ function addBubble() {
 }
 function startWaitGame() {
   if (bubbleTimer) return;
-  makeCipher();
+  bubbleScore = 0; bubbleSerial = 0; makeCipher();
   updateGameStats();
   addBubble(); bubbleTimer = setInterval(addBubble, 650);
 }
