@@ -229,6 +229,80 @@
             text-transform: uppercase
         }
 
+        /* Calendrier mensuel : une grille sobre, façon agenda cartonné ancien. */
+        .calendar-shell {
+            width: min(100%, 680px);
+            margin: 4px auto;
+            border: 3px solid var(--ink);
+            background: #fff9e9;
+            box-shadow: 6px 6px var(--shadow);
+            padding: 20px
+        }
+
+        .calendar-kicker {
+            margin: 0 0 4px;
+            color: var(--red);
+            font: 900 .68rem "Trebuchet MS", Arial, sans-serif;
+            letter-spacing: .12em;
+            text-transform: uppercase
+        }
+
+        #calendar-month {
+            margin: 0 0 17px;
+            color: var(--blue);
+            font: 900 clamp(1.8rem, 6vw, 2.7rem)/1 Impact, "Arial Black", sans-serif;
+            letter-spacing: .04em;
+            text-transform: uppercase
+        }
+
+        .calendar-weekdays,
+        .calendar-days {
+            display: grid;
+            grid-template-columns: repeat(7, minmax(0, 1fr));
+            gap: 6px
+        }
+
+        .calendar-weekdays {
+            margin-bottom: 7px;
+            color: var(--paper);
+            font: 900 .78rem/2 "Arial Black", Impact, sans-serif;
+            text-align: center
+        }
+
+        .calendar-weekdays span {
+            background: var(--blue)
+        }
+
+        .calendar-day,
+        .calendar-empty {
+            display: grid;
+            min-height: 48px;
+            place-items: center;
+            border: 2px solid var(--ink);
+            color: var(--ink);
+            font: 900 1rem/1 "Trebuchet MS", Arial, sans-serif
+        }
+
+        .calendar-empty {
+            border-color: transparent
+        }
+
+        .calendar-day.today {
+            position: relative;
+            border: 3px solid var(--red);
+            background: #fff9e9;
+            box-shadow: 3px 3px var(--red);
+            transform: translate(-1px, -1px)
+        }
+
+        .calendar-day.today::after {
+            content: "";
+            position: absolute;
+            inset: 4px;
+            border: 1px solid var(--red);
+            pointer-events: none
+        }
+
         .add {
             background: var(--red)
         }
@@ -518,6 +592,22 @@
                 align-items: flex-start
             }
 
+            .calendar-shell {
+                padding: 14px;
+                box-shadow: 4px 4px var(--shadow)
+            }
+
+            .calendar-weekdays,
+            .calendar-days {
+                gap: 4px
+            }
+
+            .calendar-day,
+            .calendar-empty {
+                min-height: 39px;
+                font-size: .85rem
+            }
+
             .title-row {
                 align-items: center
             }
@@ -705,6 +795,15 @@ body.dark {
         body.dark textarea::placeholder {
             color: var(--muted);
             opacity: 1
+        }
+
+        body.dark .calendar-shell,
+        body.dark .calendar-day.today {
+            background: #263c56
+        }
+
+        body.dark .calendar-day {
+            color: var(--ink)
         }
 
         .theme-toggle {
