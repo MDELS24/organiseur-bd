@@ -53,7 +53,13 @@
         <section id="calendar" class="view hidden" aria-labelledby="calendar-month">
             <div class="calendar-shell">
                 <div class="calendar-spiral" aria-hidden="true"></div>
-                <header class="calendar-heading"><p id="calendar-month" class="calendar-month-name">—</p><p id="calendar-number" class="calendar-number">—</p><p id="calendar-year" class="calendar-year">—</p></header>
+                <div class="calendar-toolbar">
+                    <button id="calendar-previous" class="calendar-control" type="button" aria-label="Voir le mois précédent" title="Mois précédent">‹</button>
+                    <header class="calendar-heading"><p id="calendar-month" class="calendar-month-name">—</p><p id="calendar-number" class="calendar-number">—</p><p id="calendar-year" class="calendar-year">—</p></header>
+                    <button id="calendar-next" class="calendar-control" type="button" aria-label="Voir le mois suivant" title="Mois suivant">›</button>
+                </div>
+                <p id="calendar-full-date" class="calendar-full-date" aria-live="polite">—</p>
+                <button id="calendar-today" class="calendar-today" type="button" aria-label="Revenir au mois actuel" title="Revenir au mois actuel">⌾</button>
                 <div class="calendar-weekdays" aria-hidden="true"><span>SEM.</span><span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span></div>
                 <div id="calendar-grid" class="calendar-days" role="grid" aria-label="Calendrier du mois en cours"></div>
             </div>

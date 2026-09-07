@@ -8,6 +8,7 @@ const QUEUE = "queue";
 const MONTHS = ["JANVIER", "FÉVRIER", "MARS", "AVRIL", "MAI", "JUIN", "JUILLET", "AOÛT", "SEPTEMBRE", "OCTOBRE", "NOVEMBRE", "DÉCEMBRE"];
 
 let tasks = [], notes = [], selectedNoteId = null, user = null, noteTimer = null, todoChannel = null, noteChannel = null;
+let calendarCursor = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 
 // --- IndexedDB : la copie locale et la file d'attente hors ligne. ---
 function openDb() {
@@ -93,8 +94,8 @@ function renderNotes() {
 }
 function renderCalendar() {
   const today = new Date();
-  const year = today.getFullYear();
-  const month = today.getMonth();
+  const year = calendarCursor.getFullYear();
+  const month = calendarCursor.getMonth();
   const grid = $("#calendar-grid");
   const firstOfMonth = new Date(year, month, 1);
   const mondayOffset = (firstOfMonth.getDay() + 6) % 7;
@@ -103,6 +104,9 @@ function renderCalendar() {
   $("#calendar-month").textContent = MONTHS[month];
   $("#calendar-number").textContent = String(month + 1).padStart(2, "0");
   $("#calendar-year").textContent = year;
+  $("#calendar-full-date").textContent = new Intl.DateTimeFormat("fr-FR", {
+    weekday: "long", day: "numeric", month: "long", year: "numeric"
+  }).format(today);
   grid.replaceChildren();
 
   // Six rangées, comme un calendrier de bureau. La première colonne est le n° de semaine ISO.
@@ -137,6 +141,17 @@ function renderCalendar() {
       grid.append(cell);
     }
   }
+}
+
+function moveCalendar(monthOffset) {
+  calendarCursor = new Date(calendarCursor.getFullYear(), calendarCursor.getMonth() + monthOffset, 1);
+  renderCalendar();
+}
+
+function returnToCurrentMonth() {
+  const now = new Date();
+  calendarCursor = new Date(now.getFullYear(), now.getMonth(), 1);
+  renderCalendar();
 }
 function isoWeekNumber(date) {
   const copy = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
@@ -191,6 +206,9 @@ $("#new-note").onclick = async () => { const now = Date.now(), note = { id: cryp
 function saveNoteSoon() { const note = notes.find((item) => item.id === selectedNoteId); if (!note) return; note.title = $("#note-title").value.slice(0, 160); note.content = $("#note-content").value; clearTimeout(noteTimer); noteTimer = setTimeout(async () => { await change("notes", note); renderNotes(); }, 450); }
 $("#note-title").oninput = saveNoteSoon; $("#note-content").oninput = saveNoteSoon;
 $("#delete-note").onclick = () => selectedNoteId && deleteNote(selectedNoteId);
+$("#calendar-previous").onclick = () => moveCalendar(-1);
+$("#calendar-next").onclick = () => moveCalendar(1);
+$("#calendar-today").onclick = returnToCurrentMonth;
 $("#login-form").onsubmit = async (event) => { event.preventDefault(); const { error } = await sbClient.auth.signInWithOtp({ email: $("#login-email").value, options: { emailRedirectTo: new URL(".", location.href).href } }); $("#login-message").textContent = error ? error.message : "Lien envoyé : vérifiez vos e-mails puis ouvrez le lien."; };
 $("#signout").onclick = async () => { if (confirm("Voulez-vous vraiment vous déconnecter ? Vos notes restent sauvegardées et synchronisées.")) { await sbClient.auth.signOut(); account(null); } };
 window.addEventListener("online", sync); window.addEventListener("hashchange", route);

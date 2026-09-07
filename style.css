@@ -255,11 +255,52 @@
             filter: drop-shadow(0 2px 0 var(--shadow))
         }
 
+        .calendar-toolbar {
+            display: grid;
+            grid-template-columns: 42px minmax(0, 1fr) 42px;
+            align-items: center;
+            gap: 9px;
+            margin: 0 2px 11px;
+        }
+
         .calendar-heading {
             display: grid;
             grid-template-columns: 1fr auto 1fr;
             align-items: end;
-            margin: 0 2px 15px
+            margin: 0;
+            padding: 0 2px 8px;
+            border-bottom: 2px solid var(--ink);
+        }
+
+        .calendar-control,
+        .calendar-today {
+            display: grid;
+            place-items: center;
+            min-width: 0;
+            padding: 0;
+            color: #fffaf0;
+            font: 900 2rem/.8 Impact, "Arial Black", sans-serif;
+        }
+
+        .calendar-control {
+            width: 42px;
+            height: 40px;
+            background: var(--blue);
+        }
+
+        .calendar-control:first-child { transform: rotate(-2deg) }
+        .calendar-control:last-child { transform: rotate(2deg) }
+
+        .calendar-today {
+            width: 31px;
+            height: 28px;
+            margin: -4px 0 10px auto;
+            border-color: var(--ink);
+            background: var(--yellow);
+            color: var(--ink);
+            box-shadow: 2px 2px var(--shadow);
+            font-size: 1.35rem;
+        }
         }
 
         .calendar-month-name,
@@ -277,6 +318,22 @@
             margin: 0;
             color: var(--blue);
             font: 900 clamp(2.9rem, 11vw, 4.6rem)/.8 Impact, "Arial Black", sans-serif
+        }
+
+        /* Date du jour : le cartouche éditorial juste avant la grille. */
+        .calendar-full-date {
+            width: fit-content;
+            margin: 0 auto 13px;
+            border: 2px solid var(--ink);
+            background: var(--yellow);
+            box-shadow: 3px 3px var(--shadow);
+            padding: 5px 11px 4px;
+            color: var(--ink);
+            font: 900 clamp(.78rem, 2.8vw, 1rem)/1.1 "Arial Black", Impact, sans-serif;
+            letter-spacing: .045em;
+            text-align: center;
+            text-transform: capitalize;
+            transform: rotate(-.7deg);
         }
 
         .calendar-weekdays,
@@ -619,11 +676,6 @@
 
         .note-card { padding-top: 13px }
 
-        .calendar-heading {
-            border-bottom: 2px solid var(--ink);
-            padding-bottom: 8px;
-        }
-
         .calendar-month-name,
         .calendar-year { text-shadow: 1px 1px rgba(255,255,255,.7) }
 
@@ -721,7 +773,14 @@
 
             .calendar-week { min-height: 37px; font-size: .6rem }
             .calendar-weekdays { font-size: .57rem }
-            .calendar-heading { margin-bottom: 11px }
+            .calendar-toolbar {
+                grid-template-columns: 34px minmax(0, 1fr) 34px;
+                gap: 5px;
+                margin-bottom: 9px;
+            }
+
+            .calendar-control { width: 34px; height: 34px; font-size: 1.6rem }
+            .calendar-today { margin-bottom: 8px }
 
             .title-row {
                 align-items: center
