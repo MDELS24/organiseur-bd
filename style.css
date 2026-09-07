@@ -1,14 +1,15 @@
 :root {
             /* Palette : bleu nuit, vermillon, ocre et papier ivoire. */
-            --ink: #13263d;
-            --red: #b9363f;
-            --yellow: #d5a72d;
-            --blue: #1d4e7a;
-            --paper: #f5eedc;
-            --mint: #c5d1bd;
-            --panel: #ddca83;
-            --muted: #665e4e;
-            --shadow: #0b1929
+            --ink: #142941;
+            --red: #b52d32;
+            --yellow: #d8a627;
+            --blue: #245880;
+            --paper: #f7efd9;
+            --mint: #c9d7c3;
+            --panel: #e0c46d;
+            --muted: #665d4f;
+            --shadow: #0b1d2f;
+            --line: rgba(20, 41, 65, .22)
         }
 
         * {
@@ -19,8 +20,9 @@
             margin: 0;
             min-height: 100vh;
             padding: 28px 16px;
-            background: #cda43c radial-gradient(rgba(19, 38, 61, .22) 1px, transparent 1.5px);
-            background-size: 14px 14px;
+            background-color: #d6aa38;
+            background-image: radial-gradient(rgba(20, 41, 65, .28) 1.05px, transparent 1.4px), linear-gradient(135deg, rgba(255, 246, 214, .16), transparent 40%);
+            background-size: 11px 11px, auto;
             color: var(--ink);
             font-family: "Trebuchet MS", Arial, sans-serif
         }
@@ -31,18 +33,20 @@
             margin: auto;
             border: 4px solid var(--ink);
             background: var(--paper);
-            box-shadow: 9px 9px 0 var(--shadow);
+            box-shadow: 10px 10px 0 var(--shadow), inset 0 0 0 5px rgba(255, 255, 255, .38);
             display: flex;
             flex-direction: column
         }
 
         .stripe {
-            height: 14px;
-            background: repeating-linear-gradient(135deg, var(--red) 0 16px, var(--yellow) 16px 29px, var(--blue) 29px 43px)
+            height: 16px;
+            border-bottom: 2px solid var(--ink);
+            background: repeating-linear-gradient(135deg, var(--red) 0 15px, #efcf55 15px 27px, var(--blue) 27px 42px)
         }
 
         header {
-            padding: 20px 26px 12px;
+            position: relative;
+            padding: 23px 26px 14px;
             border-bottom: 3px solid var(--ink)
         }
 
@@ -51,13 +55,13 @@
             margin: 0;
             padding: 4px 10px 2px;
             border: 3px solid var(--ink);
-            background: var(--blue);
+            background: linear-gradient(135deg, #2b638d 0 72%, #1b486e 72%);
             color: #f9f1dd;
             font: clamp(2rem, 6vw, 3.25rem)/1 Impact, "Arial Black", sans-serif;
             letter-spacing: .03em;
             text-transform: uppercase;
-            text-shadow: 2px 2px var(--shadow);
-            transform: rotate(-1.6deg)
+            text-shadow: 2px 2px var(--shadow), 0 1px #fff0bd;
+            transform: rotate(-1.6deg) skewX(-2deg)
         }
 
         h1 small {
@@ -79,13 +83,13 @@
             flex: 0 0 auto;
             margin-top: 3px;
             border: 3px solid var(--ink);
-            background: var(--yellow);
+            background: #f0ca48;
             color: var(--ink);
             box-shadow: 3px 3px var(--shadow);
             padding: 7px 9px 5px;
             font: 900 .9rem/1 "Arial Black", Impact, sans-serif;
             letter-spacing: .06em;
-            transform: rotate(1.2deg)
+            transform: rotate(1.2deg) skewX(-2deg)
         }
 
         /* La bascule prend place à gauche de l'horloge, comme un cartouche de couverture. */
@@ -114,7 +118,7 @@
             margin-top: 15px;
             padding: 8px 10px;
             border: 2px solid var(--ink);
-            background: #dce4d7;
+            background: #e6eadc;
             font-size: .78rem;
             font-weight: 800
         }
@@ -140,14 +144,14 @@
             justify-content: flex-start;
             padding: 12px 26px;
             border-bottom: 3px solid var(--ink);
-            background: var(--blue)
+            background: linear-gradient(90deg, #1e4c75, var(--blue) 65%, #183e62)
         }
 
         .nav a,
         button {
             border: 2px solid var(--ink);
-            background: var(--red);
-            box-shadow: 3px 3px var(--shadow);
+            background: linear-gradient(135deg, #c93e40, var(--red) 65%, #96262e);
+            box-shadow: 3px 3px var(--shadow), inset 0 1px rgba(255,255,255,.22);
             color: #fff6e3;
             padding: 8px 11px;
             font: 900 .75rem "Trebuchet MS", Arial;
@@ -171,7 +175,7 @@
         }
 
         .nav a.active {
-            background: var(--yellow);
+            background: #f0ca48;
             color: var(--ink);
             transform: translate(2px, 2px);
             box-shadow: 1px 1px var(--shadow)
@@ -212,7 +216,8 @@
         }
 
         .view {
-            padding: 25px
+            padding: 25px;
+            background-image: linear-gradient(90deg, transparent 0, transparent 28px, rgba(20,41,65,.035) 28px, rgba(20,41,65,.035) 29px, transparent 29px)
         }
 
         .hidden {
@@ -562,6 +567,78 @@
             background: #fff9e9;
             color: var(--ink);
             box-shadow: 4px 4px var(--shadow)
+        }
+
+        /* Finition « ligne claire » : aplats, contours francs et papier légèrement imprimé. */
+        .task-form input,
+        .task,
+        .note-card,
+        #note-content,
+        .login-screen input,
+        .calendar-shell,
+        .calendar-day.today {
+            background-color: #fffaf0;
+        }
+
+        .task,
+        .note-card,
+        .calendar-shell {
+            box-shadow: 4px 4px var(--shadow), inset 0 0 0 2px rgba(255, 255, 255, .45);
+        }
+
+        .note-list {
+            background: repeating-linear-gradient(135deg, #e2c66e 0 9px, #ddbe60 9px 18px);
+        }
+
+        .tools h2,
+        .note-card strong {
+            letter-spacing: .035em;
+        }
+
+        .task::before {
+            content: "";
+            flex: 0 0 7px;
+            align-self: stretch;
+            margin: -12px 0 -12px -12px;
+            border-right: 2px solid var(--ink);
+            background: var(--yellow);
+        }
+
+        .task.done::before { background: var(--mint) }
+
+        .note-card::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 5px;
+            border-bottom: 1px solid var(--ink);
+            background: var(--red);
+        }
+
+        .note-card { padding-top: 13px }
+
+        .calendar-heading {
+            border-bottom: 2px solid var(--ink);
+            padding-bottom: 8px;
+        }
+
+        .calendar-month-name,
+        .calendar-year { text-shadow: 1px 1px rgba(255,255,255,.7) }
+
+        .calendar-number {
+            color: var(--red);
+            text-shadow: 2px 2px #f3cf58;
+        }
+
+        .calendar-day {
+            background: rgba(255,255,255,.22);
+        }
+
+        .calendar-day.today {
+            background: #fffaf0;
+            box-shadow: 4px 4px var(--shadow), inset 0 0 0 2px rgba(255,255,255,.6);
         }
 
         @media(max-width:650px) {
