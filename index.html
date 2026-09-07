@@ -71,9 +71,13 @@
         <h2>Accès privé</h2>
         <p>Connectez-vous avec votre e-mail pour accéder à vos tâches et à vos notes synchronisées.</p>
         <form id="login-form"><input id="login-email" type="email" autocomplete="email" placeholder="votre@email.com"
-                required><button type="submit">Recevoir mon lien</button></form>
-        <p id="login-message" class="login-message"></p><small>Connexion sécurisée par Supabase. Aucun mot de passe à
-            retenir.</small>
+                required><button id="login-submit" type="submit">Recevoir mon lien</button></form>
+        <p id="login-message" class="login-message" aria-live="polite"></p>
+        <section id="wait-game" class="wait-game hidden" aria-labelledby="wait-game-title">
+            <div class="wait-game-top"><h3 id="wait-game-title">Mission patience</h3><p>Score&nbsp;: <strong id="wait-score">0</strong></p></div>
+            <p class="wait-game-instructions">Éclatez les bulles pendant l’attente.</p>
+            <div id="bubble-field" class="bubble-field" aria-label="Bulles à éclater"></div>
+        </section>
     </section>
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>

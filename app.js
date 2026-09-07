@@ -5,10 +5,13 @@ const sbClient = configured ? window.supabase.createClient(SUPABASE_URL, SUPABAS
 const $ = (selector) => document.querySelector(selector);
 const DB_NAME = "organiseur-bd";
 const QUEUE = "queue";
+const EMAIL_COOLDOWN_MS = 60_000;
+const EMAIL_COOLDOWN_KEY = "organiseur-email-cooldown-until";
 const MONTHS = ["JANVIER", "FÉVRIER", "MARS", "AVRIL", "MAI", "JUIN", "JUILLET", "AOÛT", "SEPTEMBRE", "OCTOBRE", "NOVEMBRE", "DÉCEMBRE"];
 
 let tasks = [], notes = [], selectedNoteId = null, user = null, noteTimer = null, todoChannel = null, noteChannel = null;
 let calendarCursor = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+let emailCooldownTimer = null, bubbleTimer = null, bubbleScore = 0;
 
 // --- IndexedDB : la copie locale et la file d'attente hors ligne. ---
 function openDb() {
@@ -159,6 +162,48 @@ function isoWeekNumber(date) {
   return Math.ceil(((copy - yearStart) / 86400000 + 1) / 7);
 }
 
+// --- Connexion : délai local et mini-jeu, afin d'éviter les demandes de liens répétées. ---
+function stopWaitGame() {
+  clearInterval(bubbleTimer); bubbleTimer = null;
+  $("#bubble-field").replaceChildren();
+  $("#wait-game").classList.add("hidden");
+}
+function addBubble() {
+  const field = $("#bubble-field");
+  if (field.children.length >= 6) field.firstElementChild.remove();
+  const bubble = document.createElement("button");
+  bubble.type = "button"; bubble.className = "comic-bubble"; bubble.textContent = "✦";
+  bubble.style.left = `${5 + Math.random() * 80}%`;
+  bubble.setAttribute("aria-label", "Éclater une bulle");
+  bubble.onclick = () => { bubbleScore += 1; $("#wait-score").textContent = bubbleScore; bubble.remove(); };
+  field.append(bubble);
+  setTimeout(() => bubble.remove(), 3150);
+}
+function startWaitGame() {
+  if (bubbleTimer) return;
+  bubbleScore = 0; $("#wait-score").textContent = bubbleScore;
+  $("#wait-game").classList.remove("hidden");
+  addBubble(); bubbleTimer = setInterval(addBubble, 650);
+}
+function updateEmailCooldown() {
+  const until = Number(localStorage.getItem(EMAIL_COOLDOWN_KEY) || 0);
+  const remaining = Math.ceil((until - Date.now()) / 1000);
+  const submit = $("#login-submit");
+  if (remaining <= 0) {
+    clearInterval(emailCooldownTimer); emailCooldownTimer = null;
+    localStorage.removeItem(EMAIL_COOLDOWN_KEY); submit.disabled = false; submit.textContent = "Recevoir mon lien";
+    stopWaitGame(); return;
+  }
+  submit.disabled = true; submit.textContent = `Réessayer dans ${remaining} s`;
+  $("#login-message").textContent = `Patientez ${remaining} seconde${remaining > 1 ? "s" : ""} avant une nouvelle demande.`;
+  startWaitGame();
+}
+function startEmailCooldown() {
+  localStorage.setItem(EMAIL_COOLDOWN_KEY, String(Date.now() + EMAIL_COOLDOWN_MS));
+  clearInterval(emailCooldownTimer); updateEmailCooldown();
+  emailCooldownTimer = setInterval(updateEmailCooldown, 500);
+}
+
 // --- Synchronisation Supabase. ---
 async function change(storeName, record) {
   record.updatedAt = Date.now(); await put(storeName, record);
@@ -208,7 +253,24 @@ $("#delete-note").onclick = () => selectedNoteId && deleteNote(selectedNoteId);
 $("#calendar-previous").onclick = () => moveCalendar(-1);
 $("#calendar-next").onclick = () => moveCalendar(1);
 $("#calendar-today").onclick = returnToCurrentMonth;
-$("#login-form").onsubmit = async (event) => { event.preventDefault(); const { error } = await sbClient.auth.signInWithOtp({ email: $("#login-email").value, options: { emailRedirectTo: new URL(".", location.href).href } }); $("#login-message").textContent = error ? error.message : "Lien envoyé : vérifiez vos e-mails puis ouvrez le lien."; };
+$("#login-form").onsubmit = async (event) => {
+  event.preventDefault(); if ($("#login-submit").disabled || !sbClient) return;
+  $("#login-submit").disabled = true;
+  try {
+    const { error } = await sbClient.auth.signInWithOtp({ email: $("#login-email").value, options: { emailRedirectTo: new URL(".", location.href).href } });
+    if (error) {
+      const limited = /rate limit|trop de demandes|too many/i.test(error.message);
+      $("#login-message").textContent = limited ? "Trop de demandes de lien : une minute d’attente est lancée." : error.message;
+      if (limited) startEmailCooldown(); else $("#login-submit").disabled = false;
+      return;
+    }
+    $("#login-message").textContent = "Lien envoyé : vérifiez vos e-mails puis ouvrez le lien.";
+    startEmailCooldown();
+  } catch {
+    $("#login-message").textContent = "Impossible de demander le lien pour le moment. Réessayez plus tard.";
+    $("#login-submit").disabled = false;
+  }
+};
 $("#signout").onclick = async () => { if (confirm("Voulez-vous vraiment vous déconnecter ? Vos notes restent sauvegardées et synchronisées.")) { await sbClient.auth.signOut(); account(null); } };
 window.addEventListener("online", sync); window.addEventListener("hashchange", route);
 
@@ -218,7 +280,7 @@ const themeButton = document.createElement("button"); themeButton.type = "button
 [themeButton, $("#theme-toggle-login")].forEach((button) => { button.dataset.themeToggle = ""; button.onclick = () => setTheme(!document.body.classList.contains("dark")); });
 
 async function init() {
-  [tasks, notes] = await Promise.all([all("tasks"), all("notes")]); renderTasks(); renderNotes(); renderCalendar(); route(); updateClock(); setInterval(updateClock, 1000); setTheme(localStorage.getItem("organiseur-theme") === "dark"); account(null);
+  [tasks, notes] = await Promise.all([all("tasks"), all("notes")]); renderTasks(); renderNotes(); renderCalendar(); route(); updateClock(); setInterval(updateClock, 1000); setTheme(localStorage.getItem("organiseur-theme") === "dark"); account(null); updateEmailCooldown();
   if (!configured) return;
   const { data: { session } } = await sbClient.auth.getSession(); account(session?.user || null);
   if (session?.user) { await sync(); await subscribe(); }

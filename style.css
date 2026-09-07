@@ -892,10 +892,95 @@
             font-size: .85rem
         }
 
-        .login-screen small {
-            display: block;
+        #login-submit:disabled {
+            cursor: not-allowed;
+            filter: grayscale(.2);
+            opacity: .68;
+            transform: translate(2px, 2px);
+            box-shadow: 1px 1px var(--shadow);
+        }
+
+        /* Petit jeu autonome : des bulles de dialogue à éclater pendant le délai. */
+        .wait-game {
             margin-top: 18px;
-            color: var(--muted)
+            border: 3px solid var(--ink);
+            background: #fffaf0;
+            box-shadow: 5px 5px var(--shadow), inset 0 0 0 3px rgba(255, 255, 255, .55);
+            padding: 10px;
+            text-align: left;
+        }
+
+        .wait-game-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            border-bottom: 2px solid var(--ink);
+            padding-bottom: 6px;
+        }
+
+        .wait-game h3,
+        .wait-game-top p,
+        .wait-game-instructions { margin: 0 }
+
+        .wait-game h3 {
+            color: var(--red);
+            font: 900 .85rem/1 Impact, "Arial Black", sans-serif;
+            letter-spacing: .1em;
+            text-transform: uppercase;
+        }
+
+        .wait-game-top p { font: 800 .75rem/1 "Trebuchet MS", Arial, sans-serif }
+        .wait-game-instructions { padding: 7px 2px; color: var(--muted); font: italic .78rem/1.2 Georgia, serif }
+
+        .bubble-field {
+            position: relative;
+            height: 142px;
+            overflow: hidden;
+            border: 2px solid var(--ink);
+            background-color: #d9e5e5;
+            background-image: radial-gradient(rgba(20, 41, 65, .22) 1px, transparent 1.4px);
+            background-size: 9px 9px;
+        }
+
+        .comic-bubble {
+            position: absolute;
+            bottom: -45px;
+            display: grid;
+            width: 42px;
+            height: 36px;
+            place-items: center;
+            border: 2px solid var(--ink);
+            border-radius: 50%;
+            background: #fffaf0;
+            box-shadow: 2px 2px var(--shadow);
+            color: var(--ink);
+            font: 900 1rem/1 Impact, "Arial Black", sans-serif;
+            animation: bubble-rise 3.1s linear forwards;
+        }
+
+        .comic-bubble::after {
+            content: "";
+            position: absolute;
+            right: 5px;
+            bottom: -7px;
+            width: 8px;
+            height: 8px;
+            border-right: 2px solid var(--ink);
+            border-bottom: 2px solid var(--ink);
+            background: inherit;
+            transform: rotate(35deg);
+        }
+
+        .comic-bubble:nth-child(3n) { background: #f0ca48 }
+        .comic-bubble:nth-child(3n + 2) { background: #d7e0d1 }
+        .comic-bubble:active { transform: scale(.82) }
+
+        @keyframes bubble-rise {
+            from { bottom: -45px; transform: rotate(-4deg) }
+            50% { transform: translateX(12px) rotate(3deg) }
+            to { bottom: 155px; transform: translateX(-7px) rotate(-2deg) }
+        }
         }
 
 body.dark {
@@ -954,6 +1039,10 @@ body.dark {
             color: var(--ink);
             box-shadow: 4px 4px var(--shadow)
         }
+
+        body.dark .wait-game { background: #263c56 }
+        body.dark .bubble-field { background-color: #29414b }
+        body.dark .comic-bubble { color: #142941 }
 
         body.dark #note-title {
             background: transparent;
