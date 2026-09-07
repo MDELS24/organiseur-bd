@@ -92,9 +92,12 @@
         .title-row .theme-toggle {
             flex: 0 0 auto;
             margin: 3px 0 0 auto;
-            padding: 7px 9px 5px;
-            font: 900 .72rem/1 "Arial Black", Impact, sans-serif;
-            letter-spacing: .06em;
+            display: grid;
+            width: 32px;
+            height: 30px;
+            place-items: center;
+            padding: 0;
+            font: 900 1rem/1 "Arial Black", Impact, sans-serif;
             transform: rotate(1.2deg)
         }
 
@@ -188,10 +191,19 @@
             background: rgba(245, 238, 220, .12)
         }
 
-        .nav #signout {
-            margin-left: auto;
-            padding: 5px 8px;
-            box-shadow: none
+        .account-actions {
+            display: flex;
+            justify-content: flex-end;
+            margin: auto 25px 25px;
+            padding-top: 16px;
+            border-top: 2px solid rgba(19, 38, 61, .25)
+        }
+
+        .account-actions #signout {
+            background: transparent;
+            color: var(--ink);
+            box-shadow: none;
+            font-size: .65rem
         }
 
         button.alt {
@@ -458,6 +470,11 @@
                 margin: auto 16px 16px
             }
 
+            .account-actions {
+                margin: auto 16px 16px;
+                padding-top: 12px
+            }
+
             header,
             .nav,
             .view {
@@ -512,8 +529,10 @@
 
             .title-row .theme-toggle {
                 margin-top: 3px;
-                padding: 6px 7px 4px;
-                font-size: .6rem
+                width: 30px;
+                height: 28px;
+                padding: 0;
+                font-size: .9rem
             }
 
             .task-form {
@@ -693,4 +712,13 @@ body.dark {
             display: block;
             background: var(--yellow);
             color: var(--ink)
+        }
+
+        .login-screen .theme-toggle {
+            display: grid;
+            width: 36px;
+            height: 34px;
+            place-items: center;
+            padding: 0;
+            font: 900 1.1rem/1 "Arial Black", Impact, sans-serif
         }

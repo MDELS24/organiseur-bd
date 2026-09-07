@@ -20,8 +20,7 @@
             <!-- Secours immédiat : l'heure apparaît même si un ancien app.js est gardé en cache. -->
             <script>document.querySelector('#clock').textContent=new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});</script>
         </header>
-        <nav class="nav"><a href="#todos" data-link="todos">✓ Tâches</a><a href="#notes" data-link="notes">✎ Notes</a><button id="signout" class="hidden" type="button"
-                aria-label="Se déconnecter" title="Se déconnecter">↪</button>
+        <nav class="nav"><a href="#todos" data-link="todos">✓ Tâches</a><a href="#notes" data-link="notes">✎ Notes</a>
         </nav>
         <section id="todos" class="view">
             <div class="tools">
@@ -42,7 +41,7 @@
                     <p id="notes-empty" class="empty">Aucune note.</p>
                 </aside>
                 <article class="editor">
-                    <div class="editor-top"><span id="save-state" class="saved">Prêt</span><button id="delete-note"
+                    <div class="editor-top"><span id="save-state" class="saved hidden">Prêt</span><button id="delete-note"
                             class="delete hidden" type="button" aria-label="Supprimer cette note" title="Supprimer cette note">×</button></div><input id="note-title"
                         class="hidden" placeholder="Titre de la note"><textarea id="note-content" class="hidden"
                         placeholder="Écrivez librement…"></textarea><div id="note-sync" class="note-sync hidden"><span
@@ -51,9 +50,10 @@
                 </article>
             </div>
         </section>
+        <footer class="account-actions"><button id="signout" class="hidden" type="button">↪ Se déconnecter</button></footer>
     </main>
-    <section id="login-screen" class="login-screen"><button id="theme-toggle-login" class="theme-toggle" type="button">☾
-            Mode sombre</button>
+    <section id="login-screen" class="login-screen"><button id="theme-toggle-login" class="theme-toggle" type="button"
+            aria-label="Activer le mode sombre" title="Activer le mode sombre">☾</button>
         <h2>Accès privé</h2>
         <p>Connectez-vous avec votre e-mail pour accéder à vos tâches et à vos notes synchronisées.</p>
         <form id="login-form"><input id="login-email" type="email" autocomplete="email" placeholder="votre@email.com"
