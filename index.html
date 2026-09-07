@@ -503,6 +503,8 @@
         <header>
             <div class="title-row"><h1>Organiseur <small>MD</small></h1><time id="clock" class="clock"
                     aria-label="Heure actuelle">--:--</time></div>
+            <!-- Secours immédiat : l'heure apparaît même si un ancien app.js est gardé en cache. -->
+            <script>document.querySelector('#clock').textContent=new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});</script>
             <section class="sync"><span id="sync-status">Chargement…</span><button id="signout" class="hidden"
                     type="button">Déconnexion</button></section>
         </header>
