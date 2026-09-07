@@ -92,17 +92,57 @@ function renderNotes() {
   if (opened) { $("#note-title").value = note.title; $("#note-content").value = note.content; }
 }
 function renderCalendar() {
-  const today = new Date(), year = today.getFullYear(), month = today.getMonth(), grid = $("#calendar-grid");
-  $("#calendar-month").textContent = `${MONTHS[month]} ${year}`; grid.replaceChildren();
-  const firstDay = (new Date(year, month, 1).getDay() + 6) % 7;
-  for (let i = 0; i < firstDay; i += 1) { const empty = document.createElement("span"); empty.className = "calendar-empty"; grid.append(empty); }
-  for (let day = 1; day <= new Date(year, month + 1, 0).getDate(); day += 1) {
-    const cell = document.createElement("time"); const isToday = day === today.getDate();
-    cell.className = `calendar-day${isToday ? " today" : ""}`; cell.textContent = day;
-    cell.dateTime = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-    if (isToday) cell.setAttribute("aria-label", `Aujourd’hui, le ${day} ${MONTHS[month].toLowerCase()} ${year}`);
-    grid.append(cell);
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = today.getMonth();
+  const grid = $("#calendar-grid");
+  const firstOfMonth = new Date(year, month, 1);
+  const mondayOffset = (firstOfMonth.getDay() + 6) % 7;
+  const gridStart = new Date(year, month, 1 - mondayOffset);
+
+  $("#calendar-month").textContent = MONTHS[month];
+  $("#calendar-number").textContent = String(month + 1).padStart(2, "0");
+  $("#calendar-year").textContent = year;
+  grid.replaceChildren();
+
+  // Six rangées, comme un calendrier de bureau. La première colonne est le n° de semaine ISO.
+  for (let week = 0; week < 6; week += 1) {
+    const monday = new Date(gridStart);
+    monday.setDate(gridStart.getDate() + week * 7);
+    const weekCell = document.createElement("span");
+    weekCell.className = "calendar-week";
+    weekCell.textContent = isoWeekNumber(monday);
+    weekCell.setAttribute("aria-label", `Semaine ${weekCell.textContent}`);
+    grid.append(weekCell);
+
+    for (let weekday = 0; weekday < 7; weekday += 1) {
+      const date = new Date(monday);
+      date.setDate(monday.getDate() + weekday);
+      const isCurrentMonth = date.getMonth() === month;
+      const cell = document.createElement("time");
+
+      if (!isCurrentMonth) {
+        cell.className = "calendar-empty";
+        cell.setAttribute("aria-hidden", "true");
+        grid.append(cell);
+        continue;
+      }
+
+      const isToday = date.toDateString() === today.toDateString();
+      const weekendClass = weekday === 5 ? " saturday" : weekday === 6 ? " sunday" : "";
+      cell.className = `calendar-day${isToday ? " today" : ""}${weekendClass}`;
+      cell.textContent = date.getDate();
+      cell.dateTime = `${year}-${String(month + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+      if (isToday) cell.setAttribute("aria-label", `Aujourd’hui, le ${date.getDate()} ${MONTHS[month].toLowerCase()} ${year}`);
+      grid.append(cell);
+    }
   }
+}
+function isoWeekNumber(date) {
+  const copy = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  copy.setUTCDate(copy.getUTCDate() + 4 - (copy.getUTCDay() || 7));
+  const yearStart = new Date(Date.UTC(copy.getUTCFullYear(), 0, 1));
+  return Math.ceil(((copy - yearStart) / 86400000 + 1) / 7);
 }
 
 // --- Synchronisation Supabase. ---
