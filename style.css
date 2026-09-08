@@ -1456,7 +1456,7 @@ body.dark {
            Le trait pointillé relie les étapes, sans dépendre du CSS de l'IA. */
         .rich-content ol.note-steps, .rich-editor ol.note-steps {
             position: relative;
-            margin: 1.15em 0 1.35em;
+            margin: 1.25em 0 1.45em;
             padding: 0;
             list-style: none;
             counter-reset: dossier-step;
@@ -1465,37 +1465,43 @@ body.dark {
         .rich-content ol.note-steps::before, .rich-editor ol.note-steps::before {
             content: "";
             position: absolute;
-            top: 1.7rem;
-            bottom: 1.6rem;
-            left: 1.02rem;
-            border-left: 2px dotted var(--blue);
+            top: 1.9rem;
+            bottom: 1.9rem;
+            left: .93rem;
+            border-left: 2px dotted var(--ink);
+            opacity: .8;
         }
 
         .rich-content ol.note-steps > li, .rich-editor ol.note-steps > li {
             position: relative;
             z-index: 0;
-            min-height: 2.2rem;
+            min-height: 2rem;
             margin: 0;
-            padding: .05rem 0 1rem 3rem;
+            padding: 0 0 1.25rem 2.9rem;
             counter-increment: dossier-step;
         }
 
         .rich-content ol.note-steps > li::before, .rich-editor ol.note-steps > li::before {
-            content: counter(dossier-step);
+            content: attr(data-step);
             position: absolute;
             z-index: 1;
-            top: -.1rem;
-            left: .2rem;
+            top: -.15rem;
+            left: .1rem;
             display: grid;
-            width: 1.75rem;
-            height: 1.75rem;
+            width: 1.62rem;
+            height: 1.62rem;
             place-items: center;
-            border: 2px solid var(--ink);
+            border: 1.5px solid var(--ink);
             border-radius: 50%;
             background: #fffaf0;
-            box-shadow: 2px 2px var(--shadow);
             color: var(--ink);
-            font: 900 .82rem/1 "Arial Black", Impact, sans-serif;
+            font: 700 .78rem/1 "Trebuchet MS", Arial, sans-serif;
+        }
+
+        .rich-content ol.note-steps > li > strong:first-child, .rich-editor ol.note-steps > li > strong:first-child {
+            color: var(--ink);
+            font-family: "Trebuchet MS", Arial, sans-serif;
+            font-weight: 900;
         }
 
         .rich-content ul.note-bullets, .rich-editor ul.note-bullets {

@@ -112,6 +112,8 @@ function sanitizeNoteHtml(html) {
         || child.classList.contains("note-callout") || child.hasAttribute("data-note-callout")
         || /^(?:⚠️?|❗|ℹ️?|NOTE\s*:|ATTENTION\s*:|IMPORTANT\s*:)/i.test(child.textContent.trim());
       const listStart = child.tagName === "OL" && /^\d+$/.test(child.getAttribute("start") || "") ? child.getAttribute("start") : "";
+      const orderedStep = child.tagName === "LI" && child.parentElement?.tagName === "OL"
+        ? Number(child.getAttribute("data-step") || child.getAttribute("value") || Number(child.parentElement.getAttribute("start") || 1) + [...child.parentElement.children].filter((item) => item.tagName === "LI").indexOf(child)) : 0;
       const codeLanguage = ["PRE", "CODE"].includes(child.tagName) ? languageFromElement(child) : "";
       const tokenClass = child.tagName === "SPAN" && [...child.classList].find((name) => /^token-(?:comment|string|keyword|number|property|tag)$/.test(name));
       [...child.attributes].forEach((attribute) => child.removeAttribute(attribute.name));
@@ -123,6 +125,7 @@ function sanitizeNoteHtml(html) {
       if (isCallout) child.classList.add("note-callout");
       if (codeLanguage) child.dataset.language = codeLanguage;
       if (tokenClass) child.className = tokenClass;
+      if (orderedStep > 0) child.dataset.step = String(orderedStep);
     });
   };
   clean(documentCopy.body);
@@ -139,8 +142,8 @@ function proseToHtml(piece) {
     const lines = piece.split("\n"); let list = null; const output = [];
     const closeList = () => { if (list) { output.push(`</${list}>`); list = null; } };
     lines.forEach((line) => {
-      const ordered = line.match(/^\s*\d+[.)]\s+(.*)$/); const bullet = line.match(/^\s*[-*•]\s+(.*)$/);
-      if (ordered || bullet) { const type = ordered ? "ol" : "ul"; if (type !== list) { closeList(); output.push(`<${type} class=\"${ordered ? "note-steps" : "note-bullets"}\">`); list = type; } output.push(`<li>${inlineMarkdown((ordered || bullet)[1])}</li>`); return; }
+      const ordered = line.match(/^\s*(\d+)[.)]\s*(\S(?:.*))$/); const bullet = line.match(/^\s*[-*•]\s+(.*)$/);
+      if (ordered || bullet) { const type = ordered ? "ol" : "ul"; if (type !== list) { closeList(); output.push(ordered ? `<ol class="note-steps" start="${ordered[1]}">` : '<ul class="note-bullets">'); list = type; } output.push(ordered ? `<li data-step="${ordered[1]}">${inlineMarkdown(ordered[2])}</li>` : `<li>${inlineMarkdown(bullet[1])}</li>`); return; }
       closeList();
       if (/^#{1,4}\s+/.test(line)) { const level = Math.min(4, line.match(/^#+/)[0].length); output.push(`<h${level}>${inlineMarkdown(line.replace(/^#+\s+/, ""))}</h${level}>`); }
       else if (/^>\s?/.test(line)) output.push(`<blockquote class="note-callout">${inlineMarkdown(line.replace(/^>\s?/, ""))}</blockquote>`);
@@ -161,7 +164,7 @@ function plainTextToHtml(text) {
   output.push(proseToHtml(source.slice(cursor))); return output.join("");
 }
 function looksLikeMarkdown(text) {
-  return /^\s*(?:#{1,4}\s+|[-*•]\s+|\d+[.)]\s+|>\s?|```|(?:---|\*\*\*|___)\s*$)/m.test(text)
+  return /^\s*(?:#{1,4}\s+|[-*•]\s+|\d+[.)]\s*|>\s?|```|(?:---|\*\*\*|___)\s*$)/m.test(text)
     || /\*\*[^*]+\*\*|`[^`]+`|\[[^\]]+\]\(https?:\/\//.test(text);
 }
 function markdownFromSimpleHtml(html) {
