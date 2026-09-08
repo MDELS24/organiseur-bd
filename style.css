@@ -79,7 +79,7 @@
             width: fit-content;
             margin: 13px 0 0 4px;
             border: 2px solid var(--ink);
-            background: var(--yellow);
+            background: #f0c84b;
             box-shadow: 3px 3px var(--shadow);
             padding: 6px 10px 5px;
             color: #142941;
@@ -208,18 +208,29 @@
             box-shadow: 1px 1px var(--shadow)
         }
 
-        /* Navigation sobre : les boutons d'action gardent le rouge, pas les onglets. */
+        /* Les onglets sont eux aussi des cartouches d'action : même rouge,
+           contour et relief que « Nouvelle note », avec un jaune pour l'onglet actif. */
         .nav a {
-            background: transparent;
-            border-color: transparent;
-            box-shadow: none;
-            color: #fff3d8;
-            padding-left: 8px;
-            padding-right: 8px
+            display: inline-flex;
+            align-items: center;
+            min-height: 2.3rem;
+            background: var(--yellow);
+            border-color: var(--ink);
+            box-shadow: 3px 3px var(--shadow);
+            color: #142941;
+            padding-left: 11px;
+            padding-right: 11px
         }
 
         .nav a:hover {
-            background: rgba(245, 238, 220, .12)
+            filter: brightness(1.07)
+        }
+
+        .nav a.active {
+            background: var(--blue);
+            color: #fffaf0;
+            transform: translate(2px, 2px);
+            box-shadow: 1px 1px var(--shadow)
         }
 
         .account-actions {
@@ -1537,4 +1548,128 @@ body.dark {
             .rich-content ol.note-steps::before, .rich-editor ol.note-steps::before { left: .92rem }
             .rich-content .note-callout, .rich-editor .note-callout { padding: .85rem .75rem .85rem 2.75rem }
             .rich-content .note-callout::before, .rich-editor .note-callout::before { left: .55rem }
+        }
+
+        /* Bloc de code : palette d'IDE, langage indiqué, et aucune fuite hors
+           de la note. Sur mobile les longues lignes reviennent à la ligne. */
+        .rich-content pre, .rich-editor pre {
+            position: relative;
+            box-sizing: border-box;
+            width: 100%;
+            max-width: 100%;
+            min-width: 0;
+            overflow-x: auto;
+            overflow-y: hidden;
+            padding: 2.35rem 1rem 1rem;
+            border: 3px solid var(--ink);
+            border-left: 7px solid var(--red);
+            background: #10263c;
+            box-shadow: 4px 4px var(--shadow);
+            color: #f8edd2;
+            tab-size: 2;
+            white-space: pre;
+            overflow-wrap: normal;
+        }
+
+        .rich-content pre::before, .rich-editor pre::before {
+            content: attr(data-language);
+            position: absolute;
+            top: 0;
+            right: 0;
+            left: 0;
+            overflow: hidden;
+            border-bottom: 2px solid rgba(248, 237, 210, .35);
+            background: #1e4c75;
+            padding: .42rem .75rem;
+            color: #fffaf0;
+            font: 900 .68rem/1 "Arial Black", Impact, sans-serif;
+            letter-spacing: .08em;
+            text-overflow: ellipsis;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        .rich-content pre code, .rich-editor pre code {
+            display: block;
+            min-width: max-content;
+            background: transparent;
+            color: inherit;
+            font: inherit;
+        }
+
+        .rich-content .token-comment, .rich-editor .token-comment { color: #7fb38b; font-style: italic }
+        .rich-content .token-string, .rich-editor .token-string { color: #f1c972 }
+        .rich-content .token-keyword, .rich-editor .token-keyword { color: #8fc7ff; font-weight: 700 }
+        .rich-content .token-number, .rich-editor .token-number { color: #f39a9c }
+        .rich-content .token-property, .rich-editor .token-property { color: #b7d88d }
+        .rich-content .token-tag, .rich-editor .token-tag { color: #82d1cf }
+
+        body.dark .rich-content pre, body.dark .rich-editor pre { background: #071725; border-color: #f8edd2; border-left-color: #ee5960; color: #fff4d8; box-shadow: 4px 4px #06111f }
+        body.dark .rich-content pre::before, body.dark .rich-editor pre::before { background: #28608d; border-bottom-color: rgba(248, 237, 210, .4) }
+
+        @media (max-width: 520px) {
+            .rich-content pre, .rich-editor pre { padding: 2.2rem .75rem .8rem; font-size: .76rem; line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere }
+            .rich-content pre code, .rich-editor pre code { min-width: 0; white-space: inherit; overflow-wrap: inherit }
+        }
+
+        /* Calendrier de bureau : une rangée par semaine permet de poser une
+           réglette transparente sur toute la ligne, au lieu d'un rail isolé. */
+        .calendar-days {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .calendar-week-row {
+            position: relative;
+            display: grid;
+            grid-template-columns: .72fr repeat(7, minmax(0, 1fr));
+            gap: 6px;
+            isolation: isolate;
+        }
+
+        .calendar-week-row > * { position: relative; z-index: 1 }
+
+        /* Feuille de plastique coulissante : reflet léger, bord net et ombre
+           de contact. Les chiffres restent au-dessus pour une lecture nette. */
+        .calendar-week-row.current-week::before {
+            content: "";
+            position: absolute;
+            z-index: 2;
+            inset: -5px -6px;
+            border: 2px solid rgba(20, 41, 65, .5);
+            border-radius: 3px;
+            background: linear-gradient(112deg, rgba(221, 240, 244, .46) 0%, rgba(255, 255, 255, .13) 38%, rgba(108, 164, 184, .24) 100%);
+            box-shadow: inset 0 2px rgba(255,255,255,.65), inset 0 -2px rgba(20,41,65,.14), 2px 3px rgba(7,17,30,.24);
+            pointer-events: none;
+        }
+
+        .calendar-week-row.current-week::after {
+            content: "";
+            position: absolute;
+            z-index: 3;
+            top: -4px;
+            right: 4px;
+            left: 4px;
+            height: 3px;
+            border-radius: 50%;
+            background: rgba(255,255,255,.68);
+            box-shadow: 0 1px rgba(20,41,65,.25);
+            pointer-events: none;
+        }
+
+        .calendar-week-row.current-week .calendar-day.today { z-index: 4 }
+        .calendar-day.today::after { display: none }
+
+        body.dark .calendar-week-row.current-week::before {
+            border-color: rgba(248,237,210,.65);
+            background: linear-gradient(112deg, rgba(112, 181, 200, .3) 0%, rgba(248,237,210,.08) 42%, rgba(28, 85, 114, .38) 100%);
+            box-shadow: inset 0 2px rgba(248,237,210,.27), inset 0 -2px rgba(6,17,31,.42), 2px 3px #06111f;
+        }
+
+        body.dark .calendar-week-row.current-week::after { background: rgba(248,237,210,.38); box-shadow: 0 1px rgba(6,17,31,.7) }
+
+        @media (max-width: 650px) {
+            .calendar-days, .calendar-week-row { gap: 4px }
+            .calendar-week-row.current-week::before { inset: -4px }
         }

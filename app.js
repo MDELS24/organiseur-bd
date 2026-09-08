@@ -79,9 +79,19 @@ function route() {
 }
 
 // --- Notes riches : seul un sous-ensemble HTML sûr est conservé lors d'un collage. ---
-const NOTE_TAGS = new Set(["A", "ASIDE", "B", "BLOCKQUOTE", "BR", "CODE", "DEL", "DIV", "EM", "H1", "H2", "H3", "H4", "HR", "I", "LI", "OL", "P", "PRE", "S", "STRONG", "TABLE", "TBODY", "TD", "TH", "THEAD", "TR", "U", "UL"]);
+const NOTE_TAGS = new Set(["A", "ASIDE", "B", "BLOCKQUOTE", "BR", "CODE", "DEL", "DIV", "EM", "H1", "H2", "H3", "H4", "HR", "I", "LI", "OL", "P", "PRE", "S", "SPAN", "STRONG", "TABLE", "TBODY", "TD", "TH", "THEAD", "TR", "U", "UL"]);
 const escapeHtml = (value) => value.replace(/[&<>'"]/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[character]);
 function safeUrl(value) { try { const url = new URL(value, location.href); return ["http:", "https:", "mailto:"].includes(url.protocol) ? url.href : ""; } catch { return ""; } }
+function normaliseLanguage(value = "") {
+  const language = value.toLowerCase().replace(/^language-/, "").replace(/^lang-/, "").trim();
+  const aliases = { js: "javascript", jsx: "javascript", ts: "typescript", tsx: "typescript", py: "python", sh: "bash", shell: "bash", html: "html", xml: "html", yml: "yaml", md: "markdown", csharp: "csharp", cs: "csharp" };
+  return aliases[language] || language || "text";
+}
+function languageFromElement(element) {
+  const declared = element.getAttribute("data-language") || element.getAttribute("data-code-language")
+    || [...element.classList].find((name) => /^(?:language|lang)-/i.test(name)) || "";
+  return normaliseLanguage(declared);
+}
 function sanitizeNoteHtml(html) {
   const documentCopy = new DOMParser().parseFromString(html, "text/html");
   const clean = (node) => {
@@ -95,6 +105,8 @@ function sanitizeNoteHtml(html) {
         || child.classList.contains("note-callout") || child.hasAttribute("data-note-callout")
         || /^(?:⚠️?|❗|ℹ️?|NOTE\s*:|ATTENTION\s*:|IMPORTANT\s*:)/i.test(child.textContent.trim());
       const listStart = child.tagName === "OL" && /^\d+$/.test(child.getAttribute("start") || "") ? child.getAttribute("start") : "";
+      const codeLanguage = ["PRE", "CODE"].includes(child.tagName) ? languageFromElement(child) : "";
+      const tokenClass = child.tagName === "SPAN" && [...child.classList].find((name) => /^token-(?:comment|string|keyword|number|property|tag)$/.test(name));
       [...child.attributes].forEach((attribute) => child.removeAttribute(attribute.name));
       if (child.tagName === "A") {
         if (href) { child.href = href; child.target = "_blank"; child.rel = "noopener noreferrer"; }
@@ -102,6 +114,8 @@ function sanitizeNoteHtml(html) {
       if (child.tagName === "OL") { child.className = "note-steps"; if (listStart) child.start = Number(listStart); }
       if (child.tagName === "UL") child.className = "note-bullets";
       if (isCallout) child.classList.add("note-callout");
+      if (codeLanguage) child.dataset.language = codeLanguage;
+      if (tokenClass) child.className = tokenClass;
     });
   };
   clean(documentCopy.body);
@@ -113,10 +127,7 @@ function inlineMarkdown(text) {
     .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
     .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, (_match, label, href) => `<a data-safe-href="${href}">${label}</a>`);
 }
-function plainTextToHtml(text) {
-  const pieces = text.replace(/\r\n/g, "\n").split(/```(?:[\w-]+)?\n?|```/);
-  return pieces.map((piece, index) => {
-    if (index % 2) return `<pre><code>${escapeHtml(piece.replace(/\n$/, ""))}</code></pre>`;
+function proseToHtml(piece) {
     const lines = piece.split("\n"); let list = null; const output = [];
     const closeList = () => { if (list) { output.push(`</${list}>`); list = null; } };
     lines.forEach((line) => {
@@ -127,7 +138,57 @@ function plainTextToHtml(text) {
       else if (line.trim()) output.push(`<p>${inlineMarkdown(line)}</p>`);
     });
     closeList(); return output.join("");
-  }).join("");
+}
+function plainTextToHtml(text) {
+  const source = text.replace(/\r\n/g, "\n"); const fence = /```([\w+-]*)[^\S\r\n]*\n?([\s\S]*?)```/g;
+  let cursor = 0; let match; const output = [];
+  while ((match = fence.exec(source))) {
+    output.push(proseToHtml(source.slice(cursor, match.index)));
+    const language = normaliseLanguage(match[1]);
+    output.push(`<pre data-language="${language}"><code data-language="${language}">${escapeHtml(match[2].replace(/\n$/, ""))}</code></pre>`);
+    cursor = fence.lastIndex;
+  }
+  output.push(proseToHtml(source.slice(cursor))); return output.join("");
+}
+function detectLanguage(source) {
+  if (/^\s*</.test(source) && /<\/?[a-z][^>]*>/i.test(source)) return "html";
+  if (/^\s*[\[{]/.test(source) && /"[^"\n]+"\s*:/.test(source)) return "json";
+  if (/^\s*(?:SELECT|INSERT|UPDATE|CREATE|DELETE)\b/im.test(source)) return "sql";
+  if (/^\s*(?:def |import |from |print\()/m.test(source)) return "python";
+  if (/^\s*(?:#\!\/bin|echo |export |npm |git )/m.test(source)) return "bash";
+  if (/\b(?:const|let|var|function|class|import|export|=>)\b/.test(source)) return "javascript";
+  if (/\{[^}]*:[^}]*;/.test(source)) return "css";
+  return "text";
+}
+function highlightSource(source, language) {
+  const keywords = {
+    javascript: /\b(?:const|let|var|function|return|if|else|for|while|class|new|import|from|export|async|await|throw|try|catch|true|false|null|undefined)\b/g,
+    typescript: /\b(?:const|let|var|function|return|if|else|for|while|class|interface|type|import|from|export|async|await|public|private|true|false|null|undefined)\b/g,
+    python: /\b(?:def|return|if|elif|else|for|while|in|import|from|as|class|try|except|with|True|False|None|lambda)\b/g,
+    sql: /\b(?:SELECT|FROM|WHERE|INSERT|INTO|VALUES|UPDATE|DELETE|CREATE|TABLE|JOIN|ON|ORDER|BY|GROUP|AS|AND|OR|NULL)\b/gi,
+    css: /\b(?:display|color|background|margin|padding|border|font|grid|flex|position|width|height)\b/g,
+    bash: /\b(?:if|then|fi|for|do|done|in|case|esac|export|function)\b/g
+  };
+  const patterns = {
+    html: /<!--[\s\S]*?-->|<\/?[a-z][^>]*>/gi,
+    json: /"(?:\\.|[^"\\])*"(?=\s*:)|"(?:\\.|[^"\\])*"|\b(?:true|false|null)\b|-?\b\d+(?:\.\d+)?\b/g,
+    css: /\/\*[\s\S]*?\*\/|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|#[0-9a-f]{3,8}\b|\b\d+(?:\.\d+)?(?:px|rem|em|%|s|deg)?\b|\b(?:display|color|background|margin|padding|border|font|grid|flex|position|width|height)\b/g,
+    default: /\/\*[\s\S]*?\*\/|\/\/[^\n]*|#[^\n]*|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`|\b\d+(?:\.\d+)?\b/g
+  };
+  const pattern = patterns[language] || patterns.default; const keyword = keywords[language]; let cursor = 0; let html = "";
+  source.replace(pattern, (match, offset) => {
+    const before = source.slice(cursor, offset);
+    html += keyword ? before.replace(keyword, (word) => `<span class="token-keyword">${escapeHtml(word)}</span>`) : escapeHtml(before);
+    const token = /^\/\*|^\/\/|^#/.test(match) ? "comment" : /^['"`]/.test(match) ? (language === "json" && /:\s*$/.test(source.slice(offset + match.length)) ? "property" : "string") : /^</.test(match) ? "tag" : "number";
+    html += `<span class="token-${token}">${escapeHtml(match)}</span>`; cursor = offset + match.length; return match;
+  });
+  const tail = source.slice(cursor); return html + (keyword ? tail.replace(keyword, (word) => `<span class="token-keyword">${escapeHtml(word)}</span>`) : escapeHtml(tail));
+}
+function formatCodeBlocks(root) {
+  root.querySelectorAll("pre code").forEach((code) => {
+    const source = code.textContent; const language = normaliseLanguage(code.dataset.language || code.parentElement.dataset.language || detectLanguage(source));
+    code.dataset.language = language; code.parentElement.dataset.language = language; code.innerHTML = highlightSource(source, language);
+  });
 }
 function normaliseNoteContent(content) {
   const value = String(content || "");
@@ -168,7 +229,11 @@ function renderNotes() {
   ["#note-title", "#note-content", "#note-sync", "#read-note"].forEach((id) => $(id).classList.toggle("hidden", !opened));
   $("#editor-empty").hidden = opened;
   const preserveEditor = document.activeElement === $("#note-title") || document.activeElement === $("#note-content");
-  if (opened && !preserveEditor) { $("#note-title").value = note.title; $("#note-content").innerHTML = normaliseNoteContent(note.content); }
+  if (opened && !preserveEditor) {
+    $("#note-title").value = note.title;
+    $("#note-content").innerHTML = normaliseNoteContent(note.content);
+    formatCodeBlocks($("#note-content"));
+  }
 }
 function renderCalendar() {
   const today = new Date();
@@ -190,11 +255,17 @@ function renderCalendar() {
   for (let week = 0; week < 6; week += 1) {
     const monday = new Date(gridStart);
     monday.setDate(gridStart.getDate() + week * 7);
+    const currentMonday = new Date(today);
+    currentMonday.setHours(0, 0, 0, 0);
+    currentMonday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
+    const row = document.createElement("div");
+    row.className = `calendar-week-row${monday.toDateString() === currentMonday.toDateString() ? " current-week" : ""}`;
+    grid.append(row);
     const weekCell = document.createElement("span");
     weekCell.className = "calendar-week";
     weekCell.textContent = isoWeekNumber(monday);
     weekCell.setAttribute("aria-label", `Semaine ${weekCell.textContent}`);
-    grid.append(weekCell);
+    row.append(weekCell);
 
     for (let weekday = 0; weekday < 7; weekday += 1) {
       const date = new Date(monday);
@@ -205,7 +276,7 @@ function renderCalendar() {
       if (!isCurrentMonth) {
         cell.className = "calendar-empty";
         cell.setAttribute("aria-hidden", "true");
-        grid.append(cell);
+        row.append(cell);
         continue;
       }
 
@@ -215,7 +286,7 @@ function renderCalendar() {
       cell.textContent = date.getDate();
       cell.dateTime = `${year}-${String(month + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
       if (isToday) cell.setAttribute("aria-label", `Aujourd’hui, le ${date.getDate()} ${MONTHS[month].toLowerCase()} ${year}`);
-      grid.append(cell);
+      row.append(cell);
     }
   }
 }
@@ -393,13 +464,15 @@ $("#note-title").oninput = saveNoteSoon; $("#note-content").oninput = saveNoteSo
 $("#note-content").onpaste = (event) => {
   event.preventDefault(); const clipboard = event.clipboardData;
   const html = clipboard.getData("text/html"); const text = clipboard.getData("text/plain");
-  insertHtmlAtCursor(html ? sanitizeNoteHtml(html) : plainTextToHtml(text)); saveNoteSoon();
+  insertHtmlAtCursor(html ? sanitizeNoteHtml(html) : plainTextToHtml(text));
+  formatCodeBlocks($("#note-content")); saveNoteSoon();
 };
 function openReader() {
   const note = notes.find((item) => item.id === selectedNoteId); if (!note) return;
   note.title = $("#note-title").value.slice(0, 160); note.content = normaliseNoteContent($("#note-content").innerHTML);
   $("#reader-title").textContent = note.title || "Sans titre";
   $("#reader-content").innerHTML = normaliseNoteContent(note.content);
+  formatCodeBlocks($("#reader-content"));
   $("#note-reader").classList.remove("hidden"); document.body.classList.add("reading-note"); $("#close-reader").focus();
 }
 function closeReader() { $("#note-reader").classList.add("hidden"); document.body.classList.remove("reading-note"); $("#read-note").focus(); }
