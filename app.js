@@ -10,6 +10,7 @@ const EMAIL_COOLDOWN_KEY = "organiseur-email-cooldown-until";
 const MONTHS = ["JANVIER", "FÉVRIER", "MARS", "AVRIL", "MAI", "JUIN", "JUILLET", "AOÛT", "SEPTEMBRE", "OCTOBRE", "NOVEMBRE", "DÉCEMBRE"];
 
 let tasks = [], notes = [], selectedNoteId = null, user = null, noteTimer = null, todoChannel = null, noteChannel = null;
+let syncInFlight = null, syncRequested = false;
 let calendarCursor = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 let emailCooldownTimer = null, bubbleTimer = null, bubbleScore = 0, completedMissions = 0, bubbleSerial = 0;
 let cipher = ["✦", "◈", "⌁"];
@@ -317,14 +318,34 @@ async function flush() {
 }
 async function pull(table) {
   const { data, error } = await sbClient.from(table).select("*").order("updated_at", { ascending: false }); if (error) throw error;
-  const records = data.map((row) => table === "todos" ? ({ id: row.id, text: row.text, done: row.done, createdAt: Date.parse(row.created_at), updatedAt: Date.parse(row.updated_at) }) : ({ id: row.id, title: row.title, content: row.content, createdAt: Date.parse(row.created_at), updatedAt: Date.parse(row.updated_at) }));
-  if (table === "todos") { tasks = records; await Promise.all(tasks.map((x) => put("tasks", x))); renderTasks(); }
-  else { notes = records; if (!notes.some((x) => x.id === selectedNoteId)) selectedNoteId = notes[0]?.id || null; await Promise.all(notes.map((x) => put("notes", x))); renderNotes(); }
+  const remoteRecords = data.map((row) => table === "todos" ? ({ id: row.id, text: row.text, done: row.done, createdAt: Date.parse(row.created_at), updatedAt: Date.parse(row.updated_at) }) : ({ id: row.id, title: row.title, content: row.content, createdAt: Date.parse(row.created_at), updatedAt: Date.parse(row.updated_at) }));
+  const storeName = table === "todos" ? "tasks" : "notes";
+  const localRecords = table === "todos" ? tasks : notes;
+  const pending = await all(QUEUE);
+  const pendingIds = new Set(pending.filter((operation) => operation.table === table && operation.type === "upsert").map((operation) => operation.record.id));
+  const deletedIds = new Set(pending.filter((operation) => operation.table === table && operation.type === "delete").map((operation) => operation.record.id));
+  const localById = new Map(localRecords.map((record) => [record.id, record]));
+  const merged = remoteRecords.filter((record) => !deletedIds.has(record.id)).map((remote) => {
+    const local = localById.get(remote.id);
+    return local && (pendingIds.has(local.id) || local.updatedAt > remote.updatedAt) ? local : remote;
+  });
+  localRecords.forEach((local) => { if (pendingIds.has(local.id) && !merged.some((record) => record.id === local.id)) merged.push(local); });
+  if (table === "todos") { tasks = merged; await Promise.all(tasks.map((x) => put("tasks", x))); renderTasks(); }
+  else { notes = merged; if (!notes.some((x) => x.id === selectedNoteId)) selectedNoteId = notes[0]?.id || null; await Promise.all(notes.map((x) => put("notes", x))); renderNotes(); }
 }
-async function sync() {
+async function syncOnce() {
   if (!configured || !user) return;
   try { status(navigator.onLine ? "Synchronisation" : "Hors ligne"); await flush(); await pull("todos"); await pull("notes"); account(user); }
   catch (error) { console.error(error); status("Hors ligne"); }
+}
+function sync() {
+  if (!configured || !user) return Promise.resolve();
+  syncRequested = true;
+  if (syncInFlight) return syncInFlight;
+  syncInFlight = (async () => {
+    while (syncRequested) { syncRequested = false; await syncOnce(); }
+  })().finally(() => { syncInFlight = null; });
+  return syncInFlight;
 }
 async function subscribe() {
   if (todoChannel) await sbClient.removeChannel(todoChannel); if (noteChannel) await sbClient.removeChannel(noteChannel);
