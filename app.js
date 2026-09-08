@@ -8,6 +8,7 @@ const QUEUE = "queue";
 const EMAIL_COOLDOWN_MS = 60_000;
 const EMAIL_COOLDOWN_KEY = "organiseur-email-cooldown-until";
 const MARKDOWN_DRAFT_KEY = "organiseur-markdown-draft";
+const NOTE_PARENT_MARKER = /^<!--organiseur-parent:([a-f0-9-]{36})-->/i;
 const MONTHS = ["JANVIER", "FÉVRIER", "MARS", "AVRIL", "MAI", "JUIN", "JUILLET", "AOÛT", "SEPTEMBRE", "OCTOBRE", "NOVEMBRE", "DÉCEMBRE"];
 
 let tasks = [], notes = [], selectedNoteId = null, user = null, noteTimer = null, todoChannel = null, noteChannel = null, noteSearch = "";
@@ -280,18 +281,29 @@ function renderTasks() {
 function renderNotes() {
   notes.sort((a, b) => b.updatedAt - a.updatedAt);
   const query = noteSearch.trim().toLocaleLowerCase("fr-FR");
-  const matches = notes.filter((note) => !query || `${note.title} ${notePreview(note.content)}`.toLocaleLowerCase("fr-FR").includes(query));
-  const list = $("#notes-list"); list.replaceChildren(); $("#notes-empty").hidden = matches.length > 0;
+  const directMatches = notes.filter((note) => !query || `${note.title} ${notePreview(note.content)}`.toLocaleLowerCase("fr-FR").includes(query));
+  const byId = new Map(notes.map((note) => [note.id, note])); const visibleIds = new Set(directMatches.map((note) => note.id));
+  // Une recherche garde les parents visibles : le contexte de chaque sous-note reste clair.
+  directMatches.forEach((note) => { let parent = byId.get(note.parentId); while (parent && !visibleIds.has(parent.id)) { visibleIds.add(parent.id); parent = byId.get(parent.parentId); } });
+  const list = $("#notes-list"); list.replaceChildren(); $("#notes-empty").hidden = directMatches.length > 0;
   $("#notes-empty").textContent = notes.length && query ? "Aucune note ne contient cette recherche." : "Aucune note.";
-  matches.forEach((note) => {
+  const childrenOf = (parentId) => notes.filter((note) => (note.parentId || null) === parentId && (!query || visibleIds.has(note.id)));
+  const appendNote = (note, depth, ancestry) => {
+    if (ancestry.has(note.id)) return; // Protection contre une éventuelle boucle ancienne.
     const card = document.createElement("article"); card.className = `note-card${note.id === selectedNoteId ? " selected" : ""}`;
+    const visualDepth = Math.min(depth, 4); card.dataset.depth = String(visualDepth); card.style.marginLeft = `${visualDepth * 14}px`; card.style.width = `calc(100% - ${visualDepth * 14}px)`;
     const open = document.createElement("button"); open.className = "note-open"; open.type = "button"; open.setAttribute("aria-label", `Ouvrir ${note.title || "la note"}`);
     const title = document.createElement("strong"); title.textContent = note.title || "Sans titre";
     const preview = document.createElement("span"); preview.textContent = notePreview(note.content);
     open.append(title, preview); open.onclick = () => { selectedNoteId = note.id; renderNotes(); };
+    const child = document.createElement("button"); child.className = "note-child"; child.type = "button"; child.textContent = "+"; child.title = "Créer une sous-note"; child.setAttribute("aria-label", `Créer une sous-note de ${note.title || "cette note"}`);
+    child.onclick = () => createChildNote(note.id);
     const remove = document.createElement("button"); remove.className = "delete note-delete"; remove.type = "button"; remove.textContent = "×"; remove.setAttribute("aria-label", "Supprimer cette note");
-    remove.onclick = () => deleteNote(note.id); card.append(open, remove); list.append(card);
-  });
+    remove.onclick = () => deleteNote(note.id); card.append(open, child, remove); list.append(card);
+    const nextAncestry = new Set(ancestry); nextAncestry.add(note.id); childrenOf(note.id).forEach((nested) => appendNote(nested, depth + 1, nextAncestry));
+  };
+  const roots = notes.filter((note) => !note.parentId || !byId.has(note.parentId)).filter((note) => !query || visibleIds.has(note.id));
+  roots.forEach((note) => appendNote(note, 0, new Set()));
   const note = notes.find((item) => item.id === selectedNoteId); const opened = !!note;
   ["#note-title", "#note-content", "#note-sync", "#read-note"].forEach((id) => $(id).classList.toggle("hidden", !opened));
   $("#editor-empty").hidden = opened;
@@ -463,19 +475,28 @@ async function queueDeletion(storeName, id) {
   await put(QUEUE, { id: `${storeName}:${id}`, table: storeName === "tasks" ? "todos" : "notes", type: "delete", record: { id } });
 }
 async function deleteTask(id) { tasks = tasks.filter((task) => task.id !== id); await queueDeletion("tasks", id); renderTasks(); sync(); }
-async function deleteNote(id) { notes = notes.filter((note) => note.id !== id); if (selectedNoteId === id) selectedNoteId = notes[0]?.id || null; await queueDeletion("notes", id); renderNotes(); sync(); }
+async function deleteNote(id) {
+  const children = notes.filter((note) => note.parentId === id); children.forEach((note) => { note.parentId = null; });
+  notes = notes.filter((note) => note.id !== id); if (selectedNoteId === id) selectedNoteId = notes[0]?.id || null;
+  await Promise.all(children.map((note) => change("notes", note))); await queueDeletion("notes", id); renderNotes(); sync();
+}
+function packedNoteContent(note) { return note.parentId ? `<!--organiseur-parent:${note.parentId}-->${note.content || ""}` : note.content || ""; }
+function unpackedNote(row) {
+  const source = String(row.content || ""); const match = source.match(NOTE_PARENT_MARKER);
+  return { content: match ? source.slice(match[0].length) : source, parentId: match ? match[1] : null };
+}
 async function flush() {
   if (!user || !navigator.onLine) return;
   for (const operation of await all(QUEUE)) {
     const request = operation.type === "delete"
       ? sbClient.from(operation.table).delete().eq("id", operation.record.id)
-      : sbClient.from(operation.table).upsert({ id: operation.record.id, user_id: user.id, text: operation.record.text, title: operation.record.title, content: operation.record.content, done: operation.record.done, created_at: new Date(operation.record.createdAt).toISOString(), updated_at: new Date(operation.record.updatedAt).toISOString() });
+      : sbClient.from(operation.table).upsert({ id: operation.record.id, user_id: user.id, text: operation.record.text, title: operation.record.title, content: operation.table === "notes" ? packedNoteContent(operation.record) : operation.record.content, done: operation.record.done, created_at: new Date(operation.record.createdAt).toISOString(), updated_at: new Date(operation.record.updatedAt).toISOString() });
     const { error } = await request; if (error) throw error; await drop(QUEUE, operation.id);
   }
 }
 async function pull(table) {
   const { data, error } = await sbClient.from(table).select("*").order("updated_at", { ascending: false }); if (error) throw error;
-  const remoteRecords = data.map((row) => table === "todos" ? ({ id: row.id, text: row.text, done: row.done, createdAt: Date.parse(row.created_at), updatedAt: Date.parse(row.updated_at) }) : ({ id: row.id, title: row.title, content: row.content, createdAt: Date.parse(row.created_at), updatedAt: Date.parse(row.updated_at) }));
+  const remoteRecords = data.map((row) => table === "todos" ? ({ id: row.id, text: row.text, done: row.done, createdAt: Date.parse(row.created_at), updatedAt: Date.parse(row.updated_at) }) : ({ id: row.id, title: row.title, ...unpackedNote(row), createdAt: Date.parse(row.created_at), updatedAt: Date.parse(row.updated_at) }));
   const storeName = table === "todos" ? "tasks" : "notes";
   const localRecords = table === "todos" ? tasks : notes;
   const pending = await all(QUEUE);
@@ -515,11 +536,15 @@ async function subscribe() {
 // --- Événements utilisateur. ---
 $("#task-form").onsubmit = async (event) => { event.preventDefault(); const input = $("#task-input"), text = input.value.trim(); if (!text) return; const now = Date.now(), task = { id: crypto.randomUUID(), text, done: false, createdAt: now, updatedAt: now }; tasks.unshift(task); await change("tasks", task); input.value = ""; renderTasks(); };
 $("#clear-done").onclick = async () => { const done = tasks.filter((task) => task.done); tasks = tasks.filter((task) => !task.done); await Promise.all(done.map((task) => queueDeletion("tasks", task.id))); renderTasks(); sync(); };
-function nextGenericNoteTitle(excludeId = "") {
-  const used = new Set(notes.filter((note) => note.id !== excludeId).map((note) => note.title).filter((title) => /^Note \d+$/.test(title)));
-  let number = 1; while (used.has(`Note ${number}`)) number += 1; return `Note ${number}`;
+function datedNoteTitle() {
+  const stamp = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date());
+  return `Note — ${stamp}`;
 }
-$("#new-note").onclick = async () => { const now = Date.now(), note = { id: crypto.randomUUID(), title: nextGenericNoteTitle(), content: "", createdAt: now, updatedAt: now }; notes.unshift(note); selectedNoteId = note.id; await change("notes", note); renderNotes(); $("#note-title").focus(); $("#note-title").select(); };
+async function createChildNote(parentId) {
+  const now = Date.now(); const note = { id: crypto.randomUUID(), parentId, title: datedNoteTitle(), content: "", createdAt: now, updatedAt: now };
+  notes.unshift(note); selectedNoteId = note.id; await change("notes", note); renderNotes(); $("#note-title").focus(); $("#note-title").select();
+}
+$("#new-note").onclick = async () => { const now = Date.now(), note = { id: crypto.randomUUID(), parentId: null, title: datedNoteTitle(), content: "", createdAt: now, updatedAt: now }; notes.unshift(note); selectedNoteId = note.id; await change("notes", note); renderNotes(); $("#note-title").focus(); $("#note-title").select(); };
 function insertHtmlAtCursor(html) {
   const selection = window.getSelection(); if (!selection?.rangeCount) return;
   const range = selection.getRangeAt(0); range.deleteContents();
@@ -528,11 +553,11 @@ function insertHtmlAtCursor(html) {
 }
 function saveNoteSoon() {
   const note = notes.find((item) => item.id === selectedNoteId); if (!note) return;
-  note.title = $("#note-title").value.trim().slice(0, 160) || nextGenericNoteTitle(note.id); note.content = normaliseNoteContent($("#note-content").innerHTML);
+  note.title = $("#note-title").value.trim().slice(0, 160) || datedNoteTitle(); note.content = normaliseNoteContent($("#note-content").innerHTML);
   clearTimeout(noteTimer); noteTimer = setTimeout(async () => { await change("notes", note); renderNotes(); }, 450);
 }
 $("#note-title").oninput = saveNoteSoon; $("#note-content").oninput = saveNoteSoon;
-$("#note-title").onblur = () => { if (!$("#note-title").value.trim()) { $("#note-title").value = nextGenericNoteTitle(selectedNoteId); saveNoteSoon(); } };
+$("#note-title").onblur = () => { if (!$("#note-title").value.trim()) { $("#note-title").value = datedNoteTitle(); saveNoteSoon(); } };
 $("#note-content").onblur = () => { const content = normaliseNoteContent($("#note-content").innerHTML); $("#note-content").innerHTML = content; formatCodeBlocks($("#note-content")); saveNoteSoon(); };
 $("#note-content").onpaste = (event) => {
   event.preventDefault(); const clipboard = event.clipboardData;

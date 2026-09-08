@@ -44,7 +44,7 @@
                 <article class="editor">
                     <div class="editor-top"><span id="save-state" class="saved hidden">Prêt</span><div class="editor-actions"><button id="read-note" class="read-note hidden" type="button" aria-label="Lire la note en plein écran" title="Lecture plein écran">▣</button><button id="delete-note"
                             class="delete hidden" type="button" aria-label="Supprimer cette note" title="Supprimer cette note">×</button></div></div><input id="note-title"
-                        class="hidden" placeholder="Titre de la note"><div id="note-content" class="rich-editor hidden" contenteditable="true" role="textbox" aria-multiline="true" data-placeholder="Écrivez ou collez ici une réponse d’IA mise en forme…"></div><div id="note-sync" class="note-sync hidden"><span
+                        class="hidden" placeholder="Titre de la note"><div id="note-content" class="rich-editor hidden" contenteditable="true" role="textbox" aria-multiline="true"></div><div id="note-sync" class="note-sync hidden"><span
                             id="sync-status" class="sync-icon" role="status" aria-live="polite" title="État de synchronisation">○</span></div>
                     <p id="editor-empty" class="empty">Choisissez une note ou créez-en une.</p>
                 </article>
@@ -67,8 +67,7 @@
                     <header class="calendar-heading"><p id="calendar-month" class="calendar-month-name">—</p><p id="calendar-year" class="calendar-year">—</p></header>
                     <button id="calendar-next" class="calendar-control" type="button" aria-label="Voir le mois suivant" title="Mois suivant">›</button>
                 </div>
-                <p id="calendar-full-date" class="calendar-full-date" aria-live="polite">—</p>
-                <button id="calendar-today" class="calendar-today" type="button" aria-label="Revenir au mois actuel" title="Revenir au mois actuel">⌾</button>
+                <div class="calendar-date-row"><p id="calendar-full-date" class="calendar-full-date" aria-live="polite">—</p><button id="calendar-today" class="calendar-today" type="button" aria-label="Revenir au mois actuel" title="Revenir au mois actuel">⌾</button></div>
                 <div class="calendar-weekdays" aria-hidden="true"><span>SEM.</span><span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span></div>
                 <div id="calendar-grid" class="calendar-days" role="grid" aria-label="Calendrier du mois en cours"></div>
             </div>
@@ -81,9 +80,9 @@
                 <button id="reset-tasks" type="button">Effacer toutes les tâches</button>
                 <button id="clear-local" class="alt" type="button">Vider le cache local</button>
                 <p id="maintenance-message" class="maintenance-message" role="status" aria-live="polite"></p>
+                <div class="maintenance-signout"><button id="signout" class="hidden" type="button">↪ Se déconnecter</button></div>
             </div>
         </section>
-        <footer class="account-actions"><button id="signout" class="hidden" type="button">↪ Se déconnecter</button></footer>
     </main>
     <section id="note-reader" class="note-reader hidden" role="dialog" aria-modal="true" aria-labelledby="reader-title">
         <article class="note-sheet">

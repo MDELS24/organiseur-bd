@@ -1784,3 +1784,54 @@ body.dark {
         @media (max-width: 650px) {
             .notes-layout { grid-template-columns: minmax(0, 1fr) }
         }
+
+        /* Date et retour au mois courant forment un seul petit cartouche. */
+        .calendar-date-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin: 0 auto 13px;
+        }
+        .calendar-date-row .calendar-full-date { margin: 0; }
+        .calendar-date-row .calendar-today {
+            flex: 0 0 auto;
+            width: 31px;
+            height: 31px;
+            margin: 0;
+            border: 2px solid var(--ink);
+            border-radius: 50%;
+            background: #f0c84b;
+            box-shadow: 3px 3px var(--shadow);
+            color: #142941;
+            font: 900 1.28rem/.8 Impact, "Arial Black", sans-serif;
+            transform: rotate(1.2deg);
+        }
+        .calendar-date-row .calendar-today:hover { filter: brightness(1.08) }
+        .calendar-date-row .calendar-today:active { transform: rotate(1.2deg) translate(2px, 2px); box-shadow: 1px 1px var(--shadow) }
+        body.dark .calendar-date-row .calendar-today { border-color: #f8edd2; background: #f0c84b; color: #142941 }
+        @media (max-width: 650px) {
+            .calendar-date-row { gap: 6px; margin-bottom: 9px }
+            .calendar-date-row .calendar-full-date { max-width: calc(100% - 43px) }
+            .calendar-date-row .calendar-today { width: 29px; height: 29px; font-size: 1.15rem }
+        }
+
+        /* La déconnexion reste volontairement à l'écart, en bas de Maintenance. */
+        .maintenance-signout { display: flex; justify-content: flex-end; margin-top: 20px; padding-top: 13px; border-top: 2px solid rgba(20, 41, 65, .25) }
+        .maintenance-signout #signout { background: transparent; color: var(--ink); box-shadow: none; font-size: .7rem }
+        body.dark .maintenance-signout { border-top-color: rgba(248,237,210,.3) }
+        body.dark .maintenance-signout #signout { color: #f8edd2 }
+
+        /* Arborescence de notes : le décalage et le petit raccord indiquent
+           clairement qu'une carte est une sous-note. */
+        .note-card { box-sizing: border-box }
+        .note-card[data-depth]:not([data-depth="0"])::before { content: ""; position: absolute; top: -9px; bottom: 50%; left: -10px; width: 8px; border-left: 2px solid var(--blue); border-bottom: 2px solid var(--blue); pointer-events: none }
+        .note-open { padding-right: 58px }
+        .note-child { position: absolute; top: 7px; right: 34px; display: grid; width: 22px; height: 22px; place-items: center; padding: 0; border: 2px solid var(--ink); background: #f0c84b; box-shadow: 1px 1px var(--shadow); color: #142941; font: 900 1rem/.8 Impact, "Arial Black", sans-serif }
+        .note-child:hover { filter: brightness(1.08) }
+        .note-child:active { transform: translate(1px, 1px); box-shadow: none }
+        body.dark .note-card[data-depth]:not([data-depth="0"])::before { border-color: #7dc2db }
+        body.dark .note-child { border-color: #f8edd2; background: #f0c84b; color: #142941 }
+        @media (max-width: 650px) {
+            .note-card[data-depth]:not([data-depth="0"])::before { left: -8px; width: 6px }
+        }
