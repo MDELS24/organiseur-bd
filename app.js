@@ -67,7 +67,58 @@ function route() {
   document.querySelectorAll("[data-link]").forEach((link) => link.classList.toggle("active", link.dataset.link === view));
 }
 
-// --- Rendu. Les textes utilisateur passent toujours par textContent. ---
+// --- Notes riches : seul un sous-ensemble HTML sûr est conservé lors d'un collage. ---
+const NOTE_TAGS = new Set(["A", "B", "BLOCKQUOTE", "BR", "CODE", "DEL", "DIV", "EM", "H1", "H2", "H3", "H4", "HR", "I", "LI", "OL", "P", "PRE", "S", "STRONG", "TABLE", "TBODY", "TD", "TH", "THEAD", "TR", "U", "UL"]);
+const escapeHtml = (value) => value.replace(/[&<>'"]/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[character]);
+function safeUrl(value) { try { const url = new URL(value, location.href); return ["http:", "https:", "mailto:"].includes(url.protocol) ? url.href : ""; } catch { return ""; } }
+function sanitizeNoteHtml(html) {
+  const documentCopy = new DOMParser().parseFromString(html, "text/html");
+  const clean = (node) => {
+    [...node.children].forEach((child) => {
+      clean(child);
+      if (!NOTE_TAGS.has(child.tagName)) { child.replaceWith(...child.childNodes); return; }
+      const href = child.tagName === "A" ? safeUrl(child.getAttribute("href") || child.getAttribute("data-safe-href") || "") : "";
+      [...child.attributes].forEach((attribute) => child.removeAttribute(attribute.name));
+      if (child.tagName === "A") {
+        if (href) { child.href = href; child.target = "_blank"; child.rel = "noopener noreferrer"; }
+      }
+    });
+  };
+  clean(documentCopy.body);
+  return documentCopy.body.innerHTML;
+}
+function inlineMarkdown(text) {
+  return escapeHtml(text)
+    .replace(/`([^`]+)`/g, "<code>$1</code>")
+    .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+    .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, (_match, label, href) => `<a data-safe-href="${href}">${label}</a>`);
+}
+function plainTextToHtml(text) {
+  const pieces = text.replace(/\r\n/g, "\n").split(/```(?:[\w-]+)?\n?|```/);
+  return pieces.map((piece, index) => {
+    if (index % 2) return `<pre><code>${escapeHtml(piece.replace(/\n$/, ""))}</code></pre>`;
+    const lines = piece.split("\n"); let list = null; const output = [];
+    const closeList = () => { if (list) { output.push(`</${list}>`); list = null; } };
+    lines.forEach((line) => {
+      const ordered = line.match(/^\s*\d+[.)]\s+(.*)$/); const bullet = line.match(/^\s*[-*•]\s+(.*)$/);
+      if (ordered || bullet) { const type = ordered ? "ol" : "ul"; if (type !== list) { closeList(); output.push(`<${type}>`); list = type; } output.push(`<li>${inlineMarkdown((ordered || bullet)[1])}</li>`); return; }
+      closeList();
+      if (/^#{1,4}\s+/.test(line)) { const level = Math.min(4, line.match(/^#+/)[0].length); output.push(`<h${level}>${inlineMarkdown(line.replace(/^#+\s+/, ""))}</h${level}>`); }
+      else if (line.trim()) output.push(`<p>${inlineMarkdown(line)}</p>`);
+    });
+    closeList(); return output.join("");
+  }).join("");
+}
+function normaliseNoteContent(content) {
+  const value = String(content || "");
+  return /<\/?[a-z][\s\S]*>/i.test(value) ? sanitizeNoteHtml(value) : plainTextToHtml(value);
+}
+function notePreview(content) {
+  const temporary = document.createElement("div"); temporary.innerHTML = normaliseNoteContent(content);
+  return temporary.textContent.trim() || "Note vide";
+}
+
+// --- Rendu. Les contenus riches sont assainis avant d'entrer dans le DOM. ---
 function renderTasks() {
   tasks.sort((a, b) => b.updatedAt - a.updatedAt);
   const list = $("#task-list"); list.replaceChildren(); $("#tasks-empty").hidden = tasks.length > 0;
@@ -88,15 +139,16 @@ function renderNotes() {
     const card = document.createElement("article"); card.className = `note-card${note.id === selectedNoteId ? " selected" : ""}`;
     const open = document.createElement("button"); open.className = "note-open"; open.type = "button"; open.setAttribute("aria-label", `Ouvrir ${note.title || "la note"}`);
     const title = document.createElement("strong"); title.textContent = note.title || "Sans titre";
-    const preview = document.createElement("span"); preview.textContent = note.content || "Note vide";
+    const preview = document.createElement("span"); preview.textContent = notePreview(note.content);
     open.append(title, preview); open.onclick = () => { selectedNoteId = note.id; renderNotes(); };
     const remove = document.createElement("button"); remove.className = "delete note-delete"; remove.type = "button"; remove.textContent = "×"; remove.setAttribute("aria-label", "Supprimer cette note");
     remove.onclick = () => deleteNote(note.id); card.append(open, remove); list.append(card);
   });
   const note = notes.find((item) => item.id === selectedNoteId); const opened = !!note;
-  ["#note-title", "#note-content", "#note-sync"].forEach((id) => $(id).classList.toggle("hidden", !opened));
+  ["#note-title", "#note-content", "#note-sync", "#read-note"].forEach((id) => $(id).classList.toggle("hidden", !opened));
   $("#editor-empty").hidden = opened;
-  if (opened) { $("#note-title").value = note.title; $("#note-content").value = note.content; }
+  const preserveEditor = document.activeElement === $("#note-title") || document.activeElement === $("#note-content");
+  if (opened && !preserveEditor) { $("#note-title").value = note.title; $("#note-content").innerHTML = normaliseNoteContent(note.content); }
 }
 function renderCalendar() {
   const today = new Date();
@@ -285,8 +337,33 @@ async function subscribe() {
 $("#task-form").onsubmit = async (event) => { event.preventDefault(); const input = $("#task-input"), text = input.value.trim(); if (!text) return; const now = Date.now(), task = { id: crypto.randomUUID(), text, done: false, createdAt: now, updatedAt: now }; tasks.unshift(task); await change("tasks", task); input.value = ""; renderTasks(); };
 $("#clear-done").onclick = async () => { const done = tasks.filter((task) => task.done); tasks = tasks.filter((task) => !task.done); await Promise.all(done.map((task) => queueDeletion("tasks", task.id))); renderTasks(); sync(); };
 $("#new-note").onclick = async () => { const now = Date.now(), note = { id: crypto.randomUUID(), title: "Nouvelle note", content: "", createdAt: now, updatedAt: now }; notes.unshift(note); selectedNoteId = note.id; await change("notes", note); renderNotes(); $("#note-title").focus(); $("#note-title").select(); };
-function saveNoteSoon() { const note = notes.find((item) => item.id === selectedNoteId); if (!note) return; note.title = $("#note-title").value.slice(0, 160); note.content = $("#note-content").value; clearTimeout(noteTimer); noteTimer = setTimeout(async () => { await change("notes", note); renderNotes(); }, 450); }
+function insertHtmlAtCursor(html) {
+  const selection = window.getSelection(); if (!selection?.rangeCount) return;
+  const range = selection.getRangeAt(0); range.deleteContents();
+  const fragment = range.createContextualFragment(html); const lastNode = fragment.lastChild;
+  range.insertNode(fragment); if (lastNode) { range.setStartAfter(lastNode); range.collapse(true); selection.removeAllRanges(); selection.addRange(range); }
+}
+function saveNoteSoon() {
+  const note = notes.find((item) => item.id === selectedNoteId); if (!note) return;
+  note.title = $("#note-title").value.slice(0, 160); note.content = normaliseNoteContent($("#note-content").innerHTML);
+  clearTimeout(noteTimer); noteTimer = setTimeout(async () => { await change("notes", note); renderNotes(); }, 450);
+}
 $("#note-title").oninput = saveNoteSoon; $("#note-content").oninput = saveNoteSoon;
+$("#note-content").onpaste = (event) => {
+  event.preventDefault(); const clipboard = event.clipboardData;
+  const html = clipboard.getData("text/html"); const text = clipboard.getData("text/plain");
+  insertHtmlAtCursor(html ? sanitizeNoteHtml(html) : plainTextToHtml(text)); saveNoteSoon();
+};
+function openReader() {
+  const note = notes.find((item) => item.id === selectedNoteId); if (!note) return;
+  note.title = $("#note-title").value.slice(0, 160); note.content = normaliseNoteContent($("#note-content").innerHTML);
+  $("#reader-title").textContent = note.title || "Sans titre";
+  $("#reader-content").innerHTML = normaliseNoteContent(note.content);
+  $("#note-reader").classList.remove("hidden"); document.body.classList.add("reading-note"); $("#close-reader").focus();
+}
+function closeReader() { $("#note-reader").classList.add("hidden"); document.body.classList.remove("reading-note"); $("#read-note").focus(); }
+$("#read-note").onclick = openReader; $("#close-reader").onclick = closeReader;
+document.addEventListener("keydown", (event) => { if (event.key === "Escape" && !$("#note-reader").classList.contains("hidden")) closeReader(); });
 $("#delete-note").onclick = () => selectedNoteId && deleteNote(selectedNoteId);
 $("#calendar-previous").onclick = () => moveCalendar(-1);
 $("#calendar-next").onclick = () => moveCalendar(1);

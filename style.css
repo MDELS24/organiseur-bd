@@ -563,6 +563,16 @@
             padding-bottom: 9px
         }
 
+        .editor-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .read-note {
+            background: var(--blue);
+            color: #fffaf0;
+        }
+
         /* Icône de synchronisation, discrètement placée sous l'éditeur à droite. */
         .note-sync {
             display: flex;
@@ -616,14 +626,84 @@
         #note-content {
             flex: 1;
             min-height: 270px;
-            resize: none;
             border: 3px solid var(--ink);
             padding: 13px;
             font: 1rem/1.5 Georgia, serif;
             outline: none;
             background: #fff9e9;
             color: var(--ink);
-            box-shadow: 4px 4px var(--shadow)
+            box-shadow: 4px 4px var(--shadow);
+            overflow: auto;
+            overflow-wrap: anywhere;
+            white-space: normal;
+        }
+
+        .rich-editor:empty::before {
+            content: attr(data-placeholder);
+            color: var(--muted);
+            font-style: italic;
+            pointer-events: none;
+        }
+
+        .rich-content h1, .rich-content h2, .rich-content h3, .rich-content h4,
+        .rich-editor h1, .rich-editor h2, .rich-editor h3, .rich-editor h4 {
+            font-family: Impact, "Arial Black", sans-serif;
+            line-height: 1.05;
+            letter-spacing: .02em;
+        }
+
+        .rich-content h1, .rich-editor h1 { font-size: 1.85rem }
+        .rich-content h2, .rich-editor h2 { font-size: 1.45rem }
+        .rich-content h3, .rich-editor h3 { font-size: 1.18rem }
+        .rich-content p, .rich-editor p { margin: 0 0 .9em }
+        .rich-content ul, .rich-content ol, .rich-editor ul, .rich-editor ol { margin: 0 0 1em; padding-left: 1.6em }
+        .rich-content li, .rich-editor li { margin: .3em 0 }
+        .rich-content a, .rich-editor a { color: var(--blue); font-weight: 700; text-decoration-thickness: 2px }
+        .rich-content blockquote, .rich-editor blockquote { margin: 1em 0; border-left: 5px solid var(--red); padding: .25em 0 .25em 1em; color: var(--muted); font-style: italic }
+        .rich-content pre, .rich-editor pre { margin: 1em 0; overflow-x: auto; border: 2px solid var(--ink); background: #1a3049; padding: 12px; color: #fff4d8; font: .86rem/1.45 Consolas, "Courier New", monospace; white-space: pre }
+        .rich-content code, .rich-editor code { border-radius: 2px; background: rgba(216,166,39,.23); padding: .1em .25em; font: .9em Consolas, "Courier New", monospace }
+        .rich-content pre code, .rich-editor pre code { background: transparent; padding: 0; color: inherit }
+        .rich-content table, .rich-editor table { width: 100%; margin: 1em 0; border-collapse: collapse }
+        .rich-content th, .rich-content td, .rich-editor th, .rich-editor td { border: 1px solid var(--ink); padding: .45em; text-align: left }
+        .rich-content th, .rich-editor th { background: var(--yellow); font-family: "Arial Black", sans-serif }
+        .rich-content hr, .rich-editor hr { border: 0; border-top: 3px solid var(--red); margin: 1.4em 0 }
+
+        .note-reader {
+            position: fixed;
+            z-index: 20;
+            inset: 0;
+            overflow-y: auto;
+            background: rgba(11, 29, 47, .85);
+            padding: 40px 20px;
+        }
+
+        .note-sheet {
+            width: min(100%, 210mm);
+            min-height: 297mm;
+            margin: 0 auto;
+            border: 4px solid var(--ink);
+            background: #fffaf0;
+            box-shadow: 12px 12px 0 #07111e;
+            padding: 25mm 22mm;
+            color: #142941;
+        }
+
+        .reader-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin: -13mm -10mm 17mm;
+            border-bottom: 3px solid #142941;
+            padding: 0 0 8px;
+            color: #142941;
+            font: 900 .8rem/1 "Arial Black", Impact, sans-serif;
+            letter-spacing: .1em;
+            text-transform: uppercase;
+        }
+
+        .reader-bar button { background: var(--red); color: #fffaf0 }
+        .note-sheet > h2 { margin: 0 0 1.1em; color: #142941; font: 900 clamp(2rem, 5vw, 3.1rem)/1 Impact, "Arial Black", sans-serif }
+        body.reading-note { overflow: hidden }
         }
 
         /* Finition « ligne claire » : aplats, contours francs et papier légèrement imprimé. */
@@ -818,6 +898,34 @@
                 min-height: 38vh;
                 max-height: 58vh
             }
+
+            .note-reader {
+                padding: 0;
+                background: var(--paper);
+            }
+
+            .note-sheet {
+                width: 100%;
+                min-height: 100%;
+                border: 0;
+                box-shadow: none;
+                padding: 22px 18px 44px;
+                background: var(--paper);
+                color: var(--ink);
+            }
+
+            .reader-bar {
+                position: sticky;
+                top: 0;
+                z-index: 1;
+                margin: -4px 0 22px;
+                padding: 11px 0 9px;
+                background: var(--paper);
+                color: var(--ink);
+            }
+
+            .note-sheet > h2 { color: var(--ink); font-size: clamp(1.9rem, 10vw, 2.7rem) }
+            .rich-content pre, .rich-editor pre { max-width: 100%; font-size: .78rem }
 
             .note-card {
                 max-width: 100%
@@ -1103,6 +1211,12 @@ body.dark {
             color: var(--ink)
         }
 
+        body.dark .note-reader { background: #07111e }
+        body.dark .note-sheet { background: #263c56; color: #f6e9ca; border-color: #f6e9ca }
+        body.dark .reader-bar, body.dark .note-sheet > h2 { color: #f6e9ca; border-color: #f6e9ca }
+        body.dark .reader-bar { background: #263c56 }
+        body.dark .rich-content a, body.dark .rich-editor a { color: #f0ca48 }
+
         .theme-toggle {
             margin: 0 0 22px auto;
             display: block;
@@ -1118,3 +1232,86 @@ body.dark {
             padding: 0;
             font: 900 1.1rem/1 "Arial Black", Impact, sans-serif
         }
+
+        /* Mode sombre complet : des surfaces distinctes et un contraste lisible partout. */
+        body.dark {
+            --ink: #f8edd2;
+            --paper: #142b44;
+            --mint: #315e61;
+            --panel: #294765;
+            --muted: #d9cdae;
+            --shadow: #06111f;
+            --line: rgba(248, 237, 210, .26);
+            background-color: #091a2b;
+            background-image: radial-gradient(rgba(248, 237, 210, .16) 1px, transparent 1.4px), linear-gradient(135deg, #102b44, #081827 70%);
+        }
+
+        body.dark main,
+        body.dark .login-screen { background: var(--paper); box-shadow: 10px 10px var(--shadow), inset 0 0 0 5px rgba(248, 237, 210, .05) }
+
+        body.dark .view { background-image: linear-gradient(90deg, transparent 0, transparent 28px, rgba(248,237,210,.055) 28px, rgba(248,237,210,.055) 29px, transparent 29px) }
+        body.dark .sync { background: #203f57; color: var(--ink) }
+        body.dark .task,
+        body.dark .note-card,
+        body.dark .task-form input,
+        body.dark .login-screen input,
+        body.dark #note-content,
+        body.dark .calendar-shell,
+        body.dark .calendar-day,
+        body.dark .calendar-day.today,
+        body.dark .wait-game { background: #203d58; color: var(--ink) }
+
+        body.dark .task.done { background: #3d5366; color: #e7dabd }
+        body.dark .note-list { background: repeating-linear-gradient(135deg, #294b68 0 9px, #213f5b 9px 18px) }
+        body.dark .note-card.selected { background: #315e61 }
+        body.dark .note-card span,
+        body.dark .empty,
+        body.dark .wait-game-instructions { color: var(--muted) }
+        body.dark .calendar-empty { border-color: transparent }
+        body.dark .calendar-week { color: #d9cdae }
+
+        body.dark input::placeholder,
+        body.dark textarea::placeholder,
+        body.dark .rich-editor:empty::before { color: #d9cdae; opacity: 1 }
+
+        body.dark .clock,
+        body.dark .theme-toggle,
+        body.dark button.alt,
+        body.dark .calendar-today,
+        body.dark .wait-game-stats,
+        body.dark .rich-content th,
+        body.dark .rich-editor th { color: #142941; background: #f0c84b }
+
+        body.dark .calendar-control,
+        body.dark .read-note { background: #28608d; color: #fffaf0 }
+        body.dark .calendar-day.today { border-color: #ee5960; box-shadow: 4px 4px var(--shadow), inset 0 0 0 2px rgba(255,255,255,.12) }
+        body.dark .calendar-day.saturday { color: #c2c8ff }
+        body.dark .calendar-day.sunday { color: #ff8b90 }
+        body.dark .calendar-month-name,
+        body.dark .calendar-year { color: var(--ink) }
+
+        body.dark .bubble-field { background-color: #19344d; background-image: radial-gradient(rgba(248,237,210,.16) 1px, transparent 1.4px) }
+        body.dark .comic-bubble { background: #f8edd2; color: #142941; border-color: #f8edd2 }
+        body.dark .comic-bubble.alert { background: #a62d37; color: #fffaf0; border-color: #fffaf0 }
+        body.dark #code-sequence { color: #641820 }
+        body.dark .mission-reward { background: #28608d; color: #fffaf0; border-color: #f8edd2 }
+
+        body.dark .rich-content a,
+        body.dark .rich-editor a { color: #f6d45d }
+        body.dark .rich-content blockquote,
+        body.dark .rich-editor blockquote { color: #eadfc5; border-left-color: #ff7c82 }
+        body.dark .rich-content pre,
+        body.dark .rich-editor pre { background: #091a2b; color: #fff4d8; border-color: #f8edd2 }
+        body.dark .rich-content code,
+        body.dark .rich-editor code { background: rgba(240,200,75,.2); color: #fff4d8 }
+        body.dark .rich-content pre code,
+        body.dark .rich-editor pre code { background: transparent; color: inherit }
+        body.dark .rich-content th,
+        body.dark .rich-content td,
+        body.dark .rich-editor th,
+        body.dark .rich-editor td { border-color: #f8edd2 }
+
+        body.dark .note-reader { background: #06111f }
+        body.dark .note-sheet { background: #203d58; color: #f8edd2; border-color: #f8edd2 }
+        body.dark .reader-bar { background: #203d58; color: #f8edd2; border-color: #f8edd2 }
+        body.dark .note-sheet > h2 { color: #f8edd2 }
