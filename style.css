@@ -1752,11 +1752,12 @@ body.dark {
 
         /* Recherche et Markdown dans les notes ordinaires. Les titres gardent
            une hiérarchie nette sans prendre l'allure d'une couverture. */
-        .notes-tools-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 8px }
-        .archive-tools { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px }
+        .note-list-search { flex: 0 0 auto; padding: 12px 13px 10px; border-bottom: 2px solid var(--ink); background: rgba(255, 250, 233, .28) }
+        /* Les commandes qui forment une action unique restent toujours côte à côte. */
+        .page-actions { display: flex; flex: 0 0 auto; flex-wrap: nowrap; align-items: center; justify-content: flex-end; gap: 8px; white-space: nowrap }
         .icon-action { display: inline-grid; width: 38px; min-width: 38px; height: 34px; place-items: center; padding: 0; font: 900 1.12rem/.8 Impact, "Arial Black", sans-serif }
-        .archive-tools [aria-pressed="true"], .notes-tools-actions [aria-pressed="true"] { background: var(--blue); color: #fffaf0; transform: translate(2px, 2px); box-shadow: 1px 1px var(--shadow) }
-        #notes-search { box-sizing: border-box; width: min(100%, 245px); min-height: 35px; border: 2px solid var(--ink); background: #fffaf0; padding: 7px 9px; color: #142941; font: .82rem/1.1 Georgia, serif; outline: none }
+        .page-actions [aria-pressed="true"] { background: var(--blue); color: #fffaf0; transform: translate(2px, 2px); box-shadow: 1px 1px var(--shadow) }
+        #notes-search { box-sizing: border-box; width: 100%; min-height: 35px; border: 2px solid var(--ink); background: #fffaf0; padding: 7px 9px; color: #142941; font: .82rem/1.1 Georgia, serif; outline: none }
         #notes-search:focus { border-color: var(--red); box-shadow: 2px 2px var(--shadow) }
         .rich-content h1, .rich-content h2, .rich-content h3, .rich-content h4,
         .rich-editor h1, .rich-editor h2, .rich-editor h3, .rich-editor h4 {
@@ -1779,15 +1780,14 @@ body.dark {
         #reader-content[contenteditable="true"] { min-height: calc(297mm - 70mm); outline: none; cursor: text }
         #reader-content[contenteditable="true"]:focus { box-shadow: inset 0 0 0 2px rgba(185,54,63,.32); background: rgba(255,255,255,.16) }
         body.dark #notes-search { border-color: #f8edd2; background: #091a2b; color: #fff4d8 }
-        body.dark .archive-tools [aria-pressed="true"], body.dark .notes-tools-actions [aria-pressed="true"] { background: #28608d; color: #fffaf0 }
+        body.dark .note-list-search { border-bottom-color: #f8edd2; background: rgba(9, 26, 43, .25) }
+        body.dark .page-actions [aria-pressed="true"] { background: #28608d; color: #fffaf0 }
         body.dark .rich-content h1, body.dark .rich-content h2, body.dark .rich-content h3, body.dark .rich-content h4,
         body.dark .rich-editor h1, body.dark .rich-editor h2, body.dark .rich-editor h3, body.dark .rich-editor h4 { color: #f8edd2; border-bottom-color: #ee5960 }
         body.dark #reader-content[contenteditable="true"]:focus { background: rgba(248,237,210,.07); box-shadow: inset 0 0 0 2px rgba(238,89,96,.6) }
 
         @media (max-width: 650px) {
-            .notes-tools-actions { width: 100%; justify-content: space-between }
-            .archive-tools { width: 100%; justify-content: space-between }
-            #notes-search { flex: 1 1 150px; width: auto }
+            .page-actions { flex-wrap: nowrap; justify-content: flex-end; gap: 7px }
             #reader-content[contenteditable="true"] { min-height: calc(100vh - 10rem) }
         }
 
@@ -1860,8 +1860,7 @@ body.dark {
         .view { padding: 24px 25px 26px }
         .view > .tools { min-height: 38px; margin: 0 0 14px; align-items: center }
         .view > .tools h2 { display: flex; align-items: center; min-height: 34px; letter-spacing: .045em }
-        .archive-tools, .notes-tools-actions { min-height: 34px; align-items: center }
-        .notes-tools-actions { justify-content: flex-end }
+        .page-actions { min-height: 34px; align-items: center }
         .markdown-intro { margin: 0 0 14px }
         .calendar-page-title { margin-bottom: 14px }
         .calendar-shell { margin: 0 auto 4px }
@@ -1870,7 +1869,7 @@ body.dark {
             .view { padding: 18px 16px 22px }
             .view > .tools { min-height: auto; margin-bottom: 13px; gap: 9px }
             .view > .tools h2 { min-height: 30px }
-            .notes-tools-actions, .archive-tools { min-height: 34px }
+            .page-actions { min-height: 34px }
             .calendar-page-title { margin-bottom: 12px }
             .calendar-shell { margin-bottom: 2px }
         }
