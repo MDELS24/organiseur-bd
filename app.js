@@ -15,6 +15,7 @@ let calendarCursor = new Date(new Date().getFullYear(), new Date().getMonth(), 1
 let emailCooldownTimer = null, bubbleTimer = null, bubbleScore = 0, completedMissions = 0, bubbleSerial = 0;
 let cipher = ["✦", "◈", "⌁"];
 const ARCHIVE_REWARDS = ["Insigne du cartographe", "Lentille de terrain", "Boussole méridienne", "Sceau des archives"];
+let brandDateTimer = null;
 
 // --- IndexedDB : la copie locale et la file d'attente hors ligne. ---
 function openDb() {
@@ -44,6 +45,14 @@ const clearStore = (name) => store(name, "readwrite", (s) => s.clear());
 // --- État, thème et navigation. ---
 function updateClock() {
   $("#clock").textContent = new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+}
+function revealBrandDate() {
+  const bubble = $("#brand-date");
+  bubble.textContent = new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date());
+  clearTimeout(brandDateTimer); bubble.classList.remove("is-visible"); bubble.classList.remove("hidden");
+  requestAnimationFrame(() => bubble.classList.add("is-visible"));
+  $("#brand-reveal").setAttribute("aria-expanded", "true");
+  brandDateTimer = setTimeout(() => { bubble.classList.remove("is-visible"); bubble.classList.add("hidden"); $("#brand-reveal").setAttribute("aria-expanded", "false"); }, 3600);
 }
 function status(message) {
   const icon = $("#sync-status");
@@ -441,6 +450,8 @@ window.addEventListener("online", sync); window.addEventListener("hashchange", r
 function setTheme(isDark) { document.body.classList.toggle("dark", isDark); localStorage.setItem("organiseur-theme", isDark ? "dark" : "light"); document.querySelectorAll("[data-theme-toggle]").forEach((button) => { const label = isDark ? "Activer le mode clair" : "Activer le mode sombre"; button.textContent = isDark ? "☀" : "☾"; button.setAttribute("aria-label", label); button.title = label; button.setAttribute("aria-pressed", String(isDark)); }); }
 const themeButton = document.createElement("button"); themeButton.type = "button"; themeButton.className = "theme-toggle"; themeButton.dataset.themeToggle = ""; $("#clock").before(themeButton);
 [themeButton, $("#theme-toggle-login")].forEach((button) => { button.dataset.themeToggle = ""; button.onclick = () => setTheme(!document.body.classList.contains("dark")); });
+$("#brand-reveal").onclick = revealBrandDate;
+$("#brand-reveal").onkeydown = (event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); revealBrandDate(); } };
 
 async function init() {
   [tasks, notes] = await Promise.all([all("tasks"), all("notes")]); renderTasks(); renderNotes(); renderCalendar(); route(); updateClock(); setInterval(updateClock, 1000); setTheme(localStorage.getItem("organiseur-theme") === "dark"); account(null); updateEmailCooldown();

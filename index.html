@@ -15,8 +15,9 @@
     <main id="app-shell" class="hidden">
         <div class="stripe"></div>
         <header>
-            <div class="title-row"><h1>Organiseur <small>MD</small></h1><time id="clock" class="clock"
+            <div class="title-row"><h1 id="brand-reveal" role="button" tabindex="0" aria-expanded="false" title="Afficher la date complète">Organiseur <small>MD</small></h1><time id="clock" class="clock"
                     aria-label="Heure actuelle">--:--</time></div>
+            <p id="brand-date" class="brand-date hidden" aria-live="polite"></p>
             <!-- Secours immédiat : l'heure apparaît même si un ancien app.js est gardé en cache. -->
             <script>document.querySelector('#clock').textContent=new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});</script>
         </header>
