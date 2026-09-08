@@ -1,6 +1,8 @@
 /* Organiseur MD : interface locale, authentification et synchronisation Supabase. */
 const { url: SUPABASE_URL, publishableKey: SUPABASE_PUBLISHABLE_KEY } = window.SUPABASE_CONFIG;
-const configured = SUPABASE_URL.startsWith("https://") && SUPABASE_PUBLISHABLE_KEY.length > 20;
+const credentialsConfigured = SUPABASE_URL.startsWith("https://") && SUPABASE_PUBLISHABLE_KEY.length > 20;
+const supabaseLibraryAvailable = typeof window.supabase?.createClient === "function";
+const configured = credentialsConfigured && supabaseLibraryAvailable;
 const sbClient = configured ? window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY) : null;
 const $ = (selector) => document.querySelector(selector);
 const DB_NAME = "organiseur-bd";
@@ -53,6 +55,11 @@ function updateClock() {
   const time = now.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
   $("#clock").textContent = `${day} · ${time}`; $("#clock").setAttribute("aria-label", `${day}, ${time}`);
 }
+function authRedirectUrl() {
+  // Conserve exactement le dossier publié : /organiseur-bd/ sur GitHub Pages,
+  // ou /index.html en local. L'ancien calcul pouvait supprimer ce dossier.
+  return `${location.origin}${location.pathname}`;
+}
 function toggleNavigation() {
   const navigation = $("#main-nav");
   const collapsed = navigation.classList.toggle("is-collapsed");
@@ -76,7 +83,9 @@ function account(sessionUser) {
   $("#signout").classList.toggle("hidden", !user);
   if (user) pauseWaitGame(); else startWaitGame();
   status(!configured ? "Erreur" : user ? "Synchronisé" : "Connexion requise");
-  if (!configured) $("#login-message").textContent = "La configuration Supabase est indisponible.";
+  if (!configured) $("#login-message").textContent = credentialsConfigured
+    ? "Le module de connexion n’a pas été chargé. Vérifiez votre connexion Internet puis rechargez la page."
+    : "La configuration Supabase est indisponible.";
 }
 function route() {
   const view = ["notes", "markdown", "calendar", "maintenance"].includes(location.hash.slice(1)) ? location.hash.slice(1) : "todos";
@@ -704,7 +713,7 @@ $("#login-form").onsubmit = async (event) => {
   event.preventDefault(); if ($("#login-submit").disabled || !sbClient) return;
   $("#login-submit").disabled = true;
   try {
-    const { error } = await sbClient.auth.signInWithOtp({ email: $("#login-email").value, options: { emailRedirectTo: new URL(".", location.href).href } });
+    const { error } = await sbClient.auth.signInWithOtp({ email: $("#login-email").value, options: { emailRedirectTo: authRedirectUrl() } });
     if (error) {
       const limited = /rate limit|trop de demandes|too many/i.test(error.message);
       $("#login-message").textContent = limited ? "Trop de demandes de lien : une minute d’attente est lancée." : error.message;
