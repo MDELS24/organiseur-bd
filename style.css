@@ -75,29 +75,6 @@
             vertical-align: middle
         }
 
-        .brand-date {
-            width: fit-content;
-            margin: 13px 0 0 4px;
-            border: 2px solid var(--ink);
-            background: #f0c84b;
-            box-shadow: 3px 3px var(--shadow);
-            padding: 6px 10px 5px;
-            color: #142941;
-            font: 900 .76rem/1.1 "Arial Black", Impact, sans-serif;
-            letter-spacing: .04em;
-            text-transform: capitalize;
-            transform: rotate(-1.2deg) translateY(-6px);
-            opacity: 0;
-        }
-
-        .brand-date.is-visible { animation: brand-date-pop 3.6s ease both }
-
-        @keyframes brand-date-pop {
-            0% { opacity: 0; transform: rotate(-1.2deg) translateY(-8px) scale(.92) }
-            12%, 82% { opacity: 1; transform: rotate(-1.2deg) translateY(0) scale(1) }
-            100% { opacity: 0; transform: rotate(-1.2deg) translateY(-5px) scale(.96) }
-        }
-
         /* Une petite vignette horaire, comme une case de bande dessinée. */
         .title-row {
             display: flex;
@@ -169,9 +146,24 @@
 
         .nav {
             justify-content: flex-start;
+            max-height: 240px;
+            overflow: hidden;
             padding: 12px 26px;
             border-bottom: 3px solid var(--ink);
             background: linear-gradient(90deg, #1e4c75, var(--blue) 65%, #183e62)
+            transition: max-height .28s ease, padding .28s ease, border-width .28s ease, opacity .2s ease
+        }
+
+        /* Le cartouche « Organiseur MD » replie cette bande pour gagner de la place. */
+        .nav.is-collapsed {
+            max-height: 0;
+            min-height: 0;
+            overflow: hidden;
+            padding-top: 0;
+            padding-bottom: 0;
+            border-bottom-width: 0;
+            opacity: 0;
+            pointer-events: none
         }
 
         .nav a,
