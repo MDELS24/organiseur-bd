@@ -31,7 +31,6 @@ let draggedTaskId = null;
 let touchDraggedTaskId = null, touchNestTimer = null, touchDropTarget = null;
 let dailyArchiveTimer = null;
 let taskArchiveView = false, noteArchiveView = false;
-let archiveView = null, archiveDialogReturn = null;
 
 // --- IndexedDB : la copie locale et la file d'attente hors ligne. ---
 function openDb() {
@@ -291,8 +290,10 @@ function renderTasks() {
   tasks.sort((a, b) => b.updatedAt - a.updatedAt);
   const archivedTasks = tasks.filter((task) => task.archivedAt);
   const shownTasks = taskArchiveView ? archivedTasks : tasks.filter((task) => !task.archivedAt);
-  $("#show-task-archives").textContent = taskArchiveView ? "Tâches actives" : `Archives (${archivedTasks.length})`;
+  $("#show-task-archives").textContent = taskArchiveView ? "✓" : "▤";
   $("#show-task-archives").setAttribute("aria-pressed", String(taskArchiveView));
+  $("#show-task-archives").setAttribute("aria-label", taskArchiveView ? "Revenir aux tâches actives" : `Consulter les archives de tâches (${archivedTasks.length})`);
+  $("#show-task-archives").title = taskArchiveView ? "Revenir aux tâches actives" : `Consulter les archives de tâches (${archivedTasks.length})`;
   const list = $("#task-list"); list.replaceChildren(); $("#tasks-empty").hidden = shownTasks.length > 0;
   $("#tasks-empty").textContent = taskArchiveView ? "Aucune tâche archivée." : "Aucune tâche. À l’aventure !";
   const byId = new Map(shownTasks.map((task) => [task.id, task]));
@@ -432,8 +433,10 @@ function renderNotes() {
   notes.sort((a, b) => b.updatedAt - a.updatedAt);
   const query = noteSearch.trim().toLocaleLowerCase("fr-FR");
   const archivedNotes = notes.filter((note) => note.archivedAt);
-  $("#show-note-archives").textContent = noteArchiveView ? "Notes actives" : `Archives (${archivedNotes.length})`;
+  $("#show-note-archives").textContent = noteArchiveView ? "✓" : "▤";
   $("#show-note-archives").setAttribute("aria-pressed", String(noteArchiveView));
+  $("#show-note-archives").setAttribute("aria-label", noteArchiveView ? "Revenir aux notes actives" : `Consulter les archives de notes (${archivedNotes.length})`);
+  $("#show-note-archives").title = noteArchiveView ? "Revenir aux notes actives" : `Consulter les archives de notes (${archivedNotes.length})`;
   // Hors archive, une recherche conserve son rôle de filet de sécurité et retrouve aussi les notes classées.
   const directMatches = notes.filter((note) => {
     const matches = !query || `${note.title} ${notePreview(note.content)}`.toLocaleLowerCase("fr-FR").includes(query);
@@ -797,7 +800,6 @@ $("#reader-content").onblur = () => { $("#reader-content").innerHTML = normalise
 document.addEventListener("keydown", (event) => {
   if (event.key !== "Escape") return;
   if (!$("#note-reader").classList.contains("hidden")) closeReader();
-  else if (!$("#archive-dialog").classList.contains("hidden")) closeArchiveDialog();
 });
 async function removeQueuedOperations(table) {
   const operations = await all(QUEUE);
@@ -875,40 +877,10 @@ async function purgeTaskArchivesManually() {
   tasks = tasks.filter((task) => !task.archivedAt); await Promise.all(archived.map((task) => queueDeletion("tasks", task.id))); renderTasks(); sync();
   $("#maintenance-message").textContent = "Archives de tâches supprimées définitivement.";
 }
-function archiveDate(timestamp) { return new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(timestamp)); }
-function renderArchiveDialog() {
-  const isTasks = archiveView === "tasks"; const records = (isTasks ? tasks : notes).filter((record) => record.archivedAt).sort((a, b) => b.archivedAt - a.archivedAt);
-  $("#archive-dialog-title").textContent = isTasks ? "Archives des tâches" : "Archives des notes";
-  $("#archive-dialog-info").textContent = isTasks ? "Les tâches archivées sont effacées automatiquement après 15 jours." : "Les notes archivées sont conservées et peuvent être restaurées à tout moment.";
-  const list = $("#archive-list"); list.replaceChildren(); $("#archive-empty").hidden = records.length > 0;
-  records.forEach((record) => {
-    const entry = document.createElement("article"); entry.className = "archive-entry";
-    const heading = document.createElement("strong"); heading.textContent = isTasks ? record.text : record.title || "Sans titre";
-    const detail = document.createElement("span"); detail.textContent = `${isTasks ? "Tâche" : notePreview(record.content)} · Archivée le ${archiveDate(record.archivedAt)}`;
-    const restore = document.createElement("button"); restore.type = "button"; restore.className = "archive-restore"; restore.textContent = "↶ Restaurer"; restore.setAttribute("aria-label", `Restaurer ${heading.textContent}`);
-    restore.onclick = async () => { if (isTasks) await restoreTask(record.id); else await restoreNote(record.id); renderArchiveDialog(); };
-    entry.append(heading, detail, restore); list.append(entry);
-  });
-}
-function openArchiveDialog(kind, trigger) {
-  archiveView = kind; archiveDialogReturn = trigger; renderArchiveDialog(); $("#archive-dialog").classList.remove("hidden"); $("#close-archives").focus();
-}
-function closeArchiveDialog() { $("#archive-dialog").classList.add("hidden"); archiveView = null; archiveDialogReturn?.focus(); archiveDialogReturn = null; }
-async function restoreTask(id) {
-  const task = tasks.find((item) => item.id === id); if (!task) return;
-  task.archivedAt = null; await change("tasks", task); renderTasks();
-}
-async function restoreNote(id) {
-  const note = notes.find((item) => item.id === id); if (!note) return;
-  note.archivedAt = null; await change("notes", note); renderNotes();
-}
 $("#reset-notes").onclick = () => resetRemoteCollection("notes");
 $("#reset-tasks").onclick = () => resetRemoteCollection("tasks");
 $("#show-task-archives").onclick = () => { taskArchiveView = !taskArchiveView; renderTasks(); };
 $("#show-note-archives").onclick = () => { noteArchiveView = !noteArchiveView; renderNotes(); };
-$("#view-task-archives").onclick = (event) => openArchiveDialog("tasks", event.currentTarget);
-$("#view-note-archives").onclick = (event) => openArchiveDialog("notes", event.currentTarget);
-$("#close-archives").onclick = closeArchiveDialog;
 $("#purge-task-archives").onclick = purgeTaskArchivesManually;
 $("#export-notes").onclick = exportNotes;
 $("#import-notes").onclick = () => $("#import-notes-file").click();

@@ -24,7 +24,7 @@
         </nav>
         <section id="todos" class="view">
             <div class="tools">
-                <h2>Mes tâches</h2><div class="archive-tools"><button id="clear-done" class="alt" type="button">Archiver terminées</button><button id="show-task-archives" class="alt" type="button" aria-pressed="false">Archives (0)</button></div>
+                <h2>Mes tâches</h2><div class="archive-tools"><button id="clear-done" class="alt icon-action" type="button" aria-label="Archiver les tâches terminées" title="Archiver les tâches terminées">⇩</button><button id="show-task-archives" class="alt icon-action" type="button" aria-pressed="false" aria-label="Consulter les archives de tâches" title="Consulter les archives de tâches">▤</button></div>
             </div>
             <form id="task-form" class="task-form"><input id="task-input" maxlength="180"
                     placeholder="Ajouter une tâche…" required><button>Ajouter</button></form>
@@ -33,7 +33,7 @@
         </section>
         <section id="notes" class="view hidden">
             <div class="tools notes-tools">
-                <h2>Mes notes</h2><div class="notes-tools-actions"><input id="notes-search" type="search" autocomplete="off" placeholder="Rechercher dans les notes…" aria-label="Rechercher un mot dans les notes"><button id="show-note-archives" class="alt" type="button" aria-pressed="false">Archives (0)</button><button id="new-note" class="add" type="button">+ Nouvelle note</button></div>
+                <h2>Mes notes</h2><div class="notes-tools-actions"><input id="notes-search" type="search" autocomplete="off" placeholder="Rechercher dans les notes…" aria-label="Rechercher un mot dans les notes"><button id="show-note-archives" class="alt icon-action" type="button" aria-pressed="false" aria-label="Consulter les archives de notes" title="Consulter les archives de notes">▤</button><button id="new-note" class="add icon-action" type="button" aria-label="Créer une nouvelle note" title="Créer une nouvelle note">+</button></div>
             </div>
             <div class="notes-layout">
                 <aside class="note-list">
@@ -77,8 +77,6 @@
                 <p>Ces commandes servent à repartir sur une base saine. Les suppressions cloud sont définitives après confirmation.</p>
                 <button id="reset-notes" type="button">Effacer toutes les notes</button>
                 <button id="reset-tasks" type="button">Effacer toutes les tâches</button>
-                <button id="view-task-archives" class="alt" type="button">Consulter les archives de tâches</button>
-                <button id="view-note-archives" class="alt" type="button">Consulter les archives de notes</button>
                 <button id="purge-task-archives" class="alt" type="button">Supprimer les archives de tâches</button>
                 <button id="export-notes" class="alt" type="button">Exporter les notes (.md)</button>
                 <button id="import-notes" class="alt" type="button">Importer des notes (.md)</button>
@@ -95,9 +93,6 @@
             <h2 id="reader-title"></h2>
             <div id="reader-content" class="rich-content" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Contenu de la note en lecture plein écran"></div>
         </article>
-    </section>
-    <section id="archive-dialog" class="archive-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="archive-dialog-title">
-        <article class="archive-sheet"><div class="archive-bar"><h2 id="archive-dialog-title">Archives</h2><button id="close-archives" type="button" aria-label="Fermer les archives" title="Fermer">×</button></div><p id="archive-dialog-info" class="archive-info"></p><div id="archive-list" class="archive-list"></div><p id="archive-empty" class="empty">Aucune archive.</p></article>
     </section>
     <section id="login-screen" class="login-screen"><button id="theme-toggle-login" class="theme-toggle" type="button"
             aria-label="Activer le mode sombre" title="Activer le mode sombre">☾</button>
