@@ -1,5 +1,7 @@
 /* Organiseur MD : interface locale, authentification et synchronisation Supabase. */
-const { url: SUPABASE_URL, publishableKey: SUPABASE_PUBLISHABLE_KEY } = window.SUPABASE_CONFIG;
+// La page reste utilisable (thème, mini-jeu, interface locale) même si le
+// fichier de configuration n'a pas encore été publié sur GitHub Pages.
+const { url: SUPABASE_URL = "", publishableKey: SUPABASE_PUBLISHABLE_KEY = "" } = window.SUPABASE_CONFIG || {};
 const credentialsConfigured = SUPABASE_URL.startsWith("https://") && SUPABASE_PUBLISHABLE_KEY.length > 20;
 const supabaseLibraryAvailable = typeof window.supabase?.createClient === "function";
 const configured = credentialsConfigured && supabaseLibraryAvailable;
@@ -710,22 +712,36 @@ $("#calendar-previous").onclick = () => moveCalendar(-1);
 $("#calendar-next").onclick = () => moveCalendar(1);
 $("#calendar-today").onclick = returnToCurrentMonth;
 $("#login-form").onsubmit = async (event) => {
-  event.preventDefault(); if ($("#login-submit").disabled || !sbClient) return;
-  $("#login-submit").disabled = true;
+  event.preventDefault(); const submit = $("#login-submit");
+  if (submit.disabled) return;
+  if (!sbClient) {
+    $("#login-message").textContent = "La connexion Supabase est indisponible. Rechargez la page après avoir vérifié votre connexion Internet.";
+    return;
+  }
+  submit.disabled = true; submit.textContent = "Envoi en cours…";
+  $("#login-message").textContent = "Demande du lien sécurisé en cours…";
   try {
-    const { error } = await sbClient.auth.signInWithOtp({ email: $("#login-email").value, options: { emailRedirectTo: authRedirectUrl() } });
+    const request = sbClient.auth.signInWithOtp({ email: $("#login-email").value, options: { emailRedirectTo: authRedirectUrl() } });
+    const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error("Délai de connexion dépassé.")), 15_000));
+    const { error } = await Promise.race([request, timeout]);
     if (error) {
       const limited = /rate limit|trop de demandes|too many/i.test(error.message);
       $("#login-message").textContent = limited ? "Trop de demandes de lien : une minute d’attente est lancée." : error.message;
-      if (limited) startEmailCooldown(); else $("#login-submit").disabled = false;
+      if (limited) startEmailCooldown(); else { submit.disabled = false; submit.textContent = "Recevoir mon lien"; }
       return;
     }
     $("#login-message").textContent = "Lien envoyé : vérifiez vos e-mails puis ouvrez le lien.";
     startEmailCooldown();
-  } catch {
-    $("#login-message").textContent = "Impossible de demander le lien pour le moment. Réessayez plus tard.";
-    $("#login-submit").disabled = false;
+  } catch (error) {
+    $("#login-message").textContent = error.message === "Délai de connexion dépassé."
+      ? "La demande prend trop de temps. Vérifiez Internet puis réessayez."
+      : "Impossible de demander le lien pour le moment. Réessayez plus tard.";
+    submit.disabled = false; submit.textContent = "Recevoir mon lien";
   }
+};
+$("#login-email").oninput = () => {
+  const input = $("#login-email");
+  if (input.validity.valid && input.value.trim()) $("#login-message").textContent = "Adresse prête : appuyez sur « Recevoir mon lien ».";
 };
 $("#signout").onclick = async () => { if (confirm("Voulez-vous vraiment vous déconnecter ? Vos notes restent sauvegardées et synchronisées.")) { await sbClient.auth.signOut(); account(null); } };
 window.addEventListener("online", sync); window.addEventListener("hashchange", route);
