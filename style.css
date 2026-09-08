@@ -1838,6 +1838,23 @@ body.dark {
             .calendar-date-row .calendar-today { width: 29px; height: 29px; font-size: 1.15rem }
         }
 
+        /* En-tête de calendrier : mois et année forment une seule ligne,
+           suivie d'un cartouche de date compact avec son retour au présent. */
+        .calendar-toolbar { margin-bottom: 9px }
+        .calendar-heading { flex-wrap: nowrap; white-space: nowrap; padding: 8px 13px 7px }
+        .calendar-month-name { letter-spacing: .075em }
+        .calendar-year { display: inline-flex; align-items: center; letter-spacing: .1em }
+        .calendar-year::before { content: "•"; margin-right: .5em; color: #f0ca48; font-size: .72em }
+        .calendar-date-row { width: min(100%, 460px); justify-content: center; padding: 0 2px }
+        .calendar-date-row .calendar-full-date { min-width: 0; white-space: nowrap; padding: 6px 13px 5px; letter-spacing: .03em }
+        @media (max-width: 650px) {
+            .calendar-heading { padding: 7px 8px 6px; gap: .36em }
+            .calendar-month-name { font-size: clamp(.84rem, 4.8vw, 1.02rem) }
+            .calendar-year { font-size: .8rem }
+            .calendar-year::before { margin-right: .36em }
+            .calendar-date-row .calendar-full-date { padding: 6px 8px 5px; font-size: clamp(.67rem, 3.45vw, .86rem); letter-spacing: .015em }
+        }
+
         /* La déconnexion reste volontairement à l'écart, en bas de Maintenance. */
         .maintenance-signout { display: flex; justify-content: flex-end; margin-top: 20px; padding-top: 13px; border-top: 2px solid rgba(20, 41, 65, .25) }
         .maintenance-signout #signout { background: transparent; color: var(--ink); box-shadow: none; font-size: .7rem }
