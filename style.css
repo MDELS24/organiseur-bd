@@ -724,31 +724,28 @@
         }
 
         .note-sheet {
+            position: relative;
             width: min(100%, 210mm);
             min-height: 297mm;
             margin: 0 auto;
             border: 4px solid var(--ink);
             background: #fffaf0;
             box-shadow: 12px 12px 0 #07111e;
-            padding: 25mm 22mm;
+            /* Marges de lecture proches d'une feuille imprimée, sans gaspiller
+               l'espace auparavant réservé à la barre « Lecture ». */
+            padding: 16mm 18mm 20mm;
             color: #142941;
         }
 
         .reader-bar {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin: -13mm -10mm 17mm;
-            border-bottom: 3px solid #142941;
-            padding: 0 0 8px;
-            color: #142941;
-            font: 900 .8rem/1 "Arial Black", Impact, sans-serif;
-            letter-spacing: .1em;
-            text-transform: uppercase;
+            position: absolute;
+            top: 14px;
+            right: 14px;
+            z-index: 2;
         }
 
         .reader-bar button { background: var(--red); color: #fffaf0 }
-        .note-sheet > h2 { margin: 0 0 1.1em; color: #142941; font: 900 clamp(2rem, 5vw, 3.1rem)/1 Impact, "Arial Black", sans-serif }
+        .note-sheet > h2 { margin: 0 0 1.1em; padding-right: 48px; color: #142941; font: 900 clamp(2rem, 5vw, 3.1rem)/1 Impact, "Arial Black", sans-serif }
         body.reading-note { overflow: hidden }
         }
 
@@ -812,6 +809,68 @@
         .calendar-day.today {
             background: #fffaf0;
             box-shadow: 4px 4px var(--shadow), inset 0 0 0 2px rgba(255,255,255,.6);
+        }
+
+        /* Cartouche entre les flèches : un seul bandeau, comme l'en-tête de la grille. */
+        .calendar-heading {
+            display: flex;
+            align-items: baseline;
+            justify-content: center;
+            gap: .55em;
+            min-height: 40px;
+            margin: 0;
+            border: 2px solid var(--ink);
+            background: var(--blue);
+            padding: 8px 10px 6px;
+        }
+
+        .calendar-month-name,
+        .calendar-year {
+            margin: 0;
+            color: #fffaf0;
+            font: 900 clamp(1rem, 3.4vw, 1.35rem)/1 Impact, "Arial Black", sans-serif;
+            letter-spacing: .09em;
+            text-shadow: 1px 1px #142941;
+        }
+
+        .calendar-year {
+            color: #f0ca48;
+            font-size: .92em;
+            letter-spacing: .13em;
+        }
+
+        /* Le jour courant est retenu par un curseur rouge en plastique, avec rail et relief. */
+        .calendar-day.today {
+            z-index: 2;
+            border: 2px solid var(--ink);
+            background: #fffaf0;
+            box-shadow: none;
+            transform: none;
+        }
+
+        .calendar-day.today::before {
+            content: "";
+            position: absolute;
+            z-index: 1;
+            inset: -8px;
+            border: 7px solid var(--red);
+            border-radius: 3px;
+            box-shadow: inset 2px 2px rgba(255,255,255,.28), inset -3px -3px rgba(83,12,18,.27), 3px 3px var(--shadow);
+            pointer-events: none;
+        }
+
+        .calendar-day.today::after {
+            content: "";
+            position: absolute;
+            z-index: 0;
+            right: -14px;
+            bottom: -12px;
+            left: -14px;
+            height: 9px;
+            border: 2px solid var(--ink);
+            background: linear-gradient(#d95154, #9f2730);
+            box-shadow: inset 0 1px rgba(255,255,255,.34), 2px 2px var(--shadow);
+            pointer-events: none;
         }
 
         @media(max-width:650px) {
@@ -902,6 +961,10 @@
 
             .calendar-control { width: 34px; height: 34px; font-size: 1.6rem }
             .calendar-today { margin-bottom: 8px }
+            .calendar-heading { min-height: 34px; padding: 7px 5px 5px; gap: .35em }
+            .calendar-month-name, .calendar-year { font-size: .92rem }
+            .calendar-day.today::before { inset: -6px; border-width: 5px }
+            .calendar-day.today::after { right: -10px; bottom: -9px; left: -10px; height: 7px }
 
             .title-row {
                 align-items: center
@@ -961,13 +1024,9 @@
             }
 
             .reader-bar {
-                position: sticky;
-                top: 0;
-                z-index: 1;
-                margin: -4px 0 22px;
-                padding: 11px 0 9px;
-                background: var(--paper);
-                color: var(--ink);
+                position: absolute;
+                top: 10px;
+                right: 10px;
             }
 
             .note-sheet > h2 { color: var(--ink); font-size: clamp(1.9rem, 10vw, 2.7rem) }
@@ -1335,7 +1394,11 @@ body.dark {
         body.dark .calendar-day.saturday { color: #c2c8ff }
         body.dark .calendar-day.sunday { color: #ff8b90 }
         body.dark .calendar-month-name,
-        body.dark .calendar-year { color: var(--ink) }
+        body.dark .calendar-year { color: #fffaf0 }
+        body.dark .calendar-year { color: #f0c84b }
+        body.dark .calendar-heading { background: #28608d; border-color: #f8edd2 }
+        body.dark .calendar-day.today::before { border-color: #ee5960; box-shadow: inset 2px 2px rgba(255,255,255,.24), inset -3px -3px rgba(70,8,13,.35), 3px 3px var(--shadow) }
+        body.dark .calendar-day.today::after { background: linear-gradient(#ee5960, #a62d37); border-color: #f8edd2 }
 
         body.dark .bubble-field { background-color: #19344d; background-image: radial-gradient(rgba(248,237,210,.16) 1px, transparent 1.4px) }
         body.dark .comic-bubble { background: #f8edd2; color: #142941; border-color: #f8edd2 }
@@ -1362,3 +1425,116 @@ body.dark {
         body.dark .note-sheet { background: #203d58; color: #f8edd2; border-color: #f8edd2 }
         body.dark .reader-bar { background: #203d58; color: #f8edd2; border-color: #f8edd2 }
         body.dark .note-sheet > h2 { color: #f8edd2 }
+
+        /* Boutons d'outils : mêmes petits cartouches que la date du logo. */
+        .tools button {
+            border: 2px solid var(--ink);
+            background: var(--yellow);
+            box-shadow: 3px 3px var(--shadow);
+            color: #142941;
+            font: 900 .76rem/1.1 "Arial Black", Impact, sans-serif;
+            letter-spacing: .04em;
+            transform: rotate(-1.2deg);
+        }
+
+        .tools button:hover { filter: brightness(1.08); transform: rotate(-1.2deg) translateY(-1px) }
+        .tools button:active { transform: rotate(-1.2deg) translate(2px, 2px); box-shadow: 1px 1px var(--shadow) }
+        body.dark .tools button { background: #f0c84b; color: #142941; border-color: #f8edd2 }
+
+        /* Notes collées : les listes deviennent des instructions de dossier.
+           Le trait pointillé relie les étapes, sans dépendre du CSS de l'IA. */
+        .rich-content ol.note-steps, .rich-editor ol.note-steps {
+            position: relative;
+            margin: 1.15em 0 1.35em;
+            padding: 0;
+            list-style: none;
+            counter-reset: dossier-step;
+        }
+
+        .rich-content ol.note-steps::before, .rich-editor ol.note-steps::before {
+            content: "";
+            position: absolute;
+            top: 1.7rem;
+            bottom: 1.6rem;
+            left: 1.02rem;
+            border-left: 2px dotted var(--blue);
+        }
+
+        .rich-content ol.note-steps > li, .rich-editor ol.note-steps > li {
+            position: relative;
+            z-index: 0;
+            min-height: 2.2rem;
+            margin: 0;
+            padding: .05rem 0 1rem 3rem;
+            counter-increment: dossier-step;
+        }
+
+        .rich-content ol.note-steps > li::before, .rich-editor ol.note-steps > li::before {
+            content: counter(dossier-step);
+            position: absolute;
+            z-index: 1;
+            top: -.1rem;
+            left: .2rem;
+            display: grid;
+            width: 1.75rem;
+            height: 1.75rem;
+            place-items: center;
+            border: 2px solid var(--ink);
+            border-radius: 50%;
+            background: #fffaf0;
+            box-shadow: 2px 2px var(--shadow);
+            color: var(--ink);
+            font: 900 .82rem/1 "Arial Black", Impact, sans-serif;
+        }
+
+        .rich-content ul.note-bullets, .rich-editor ul.note-bullets {
+            padding-left: 1.7rem;
+        }
+
+        .rich-content ul.note-bullets li::marker, .rich-editor ul.note-bullets li::marker {
+            color: var(--red);
+            font-size: 1.2em;
+        }
+
+        /* Les citations, encadrés “Important” et alertes collés gardent un
+           panneau lisible, mais reviennent dans la palette de l'organiseur. */
+        .rich-content .note-callout, .rich-editor .note-callout {
+            position: relative;
+            margin: 1.35em 0;
+            border: 2px solid var(--ink);
+            border-left: 7px solid var(--red);
+            background: #e5edf1;
+            box-shadow: 4px 4px var(--shadow);
+            padding: 1rem 1rem 1rem 3.15rem;
+            color: #142941;
+            font-style: normal;
+        }
+
+        .rich-content .note-callout::before, .rich-editor .note-callout::before {
+            content: "!";
+            position: absolute;
+            top: .95rem;
+            left: .8rem;
+            display: grid;
+            width: 1.35rem;
+            height: 1.35rem;
+            place-items: center;
+            border: 2px solid var(--ink);
+            border-radius: 50%;
+            background: var(--yellow);
+            color: #142941;
+            font: 900 .9rem/1 Impact, "Arial Black", sans-serif;
+        }
+
+        .rich-content .note-callout > :last-child, .rich-editor .note-callout > :last-child { margin-bottom: 0 }
+        body.dark .rich-content ol.note-steps::before, body.dark .rich-editor ol.note-steps::before { border-left-color: #7dc2db }
+        body.dark .rich-content ol.note-steps > li::before, body.dark .rich-editor ol.note-steps > li::before { background: #f0c84b; color: #142941; border-color: #f8edd2 }
+        body.dark .rich-content .note-callout, body.dark .rich-editor .note-callout { background: #294b68; border-color: #f8edd2; border-left-color: #ee5960; color: #fff4d8; box-shadow: 4px 4px #06111f }
+        body.dark .rich-content .note-callout::before, body.dark .rich-editor .note-callout::before { border-color: #f8edd2; background: #f0c84b; color: #142941 }
+
+        @media (max-width: 520px) {
+            .rich-content ol.note-steps > li, .rich-editor ol.note-steps > li { padding-left: 2.65rem }
+            .rich-content ol.note-steps::before, .rich-editor ol.note-steps::before { left: .92rem }
+            .rich-content .note-callout, .rich-editor .note-callout { padding: .85rem .75rem .85rem 2.75rem }
+            .rich-content .note-callout::before, .rich-editor .note-callout::before { left: .55rem }
+        }

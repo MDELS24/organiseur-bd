@@ -79,7 +79,7 @@ function route() {
 }
 
 // --- Notes riches : seul un sous-ensemble HTML sûr est conservé lors d'un collage. ---
-const NOTE_TAGS = new Set(["A", "B", "BLOCKQUOTE", "BR", "CODE", "DEL", "DIV", "EM", "H1", "H2", "H3", "H4", "HR", "I", "LI", "OL", "P", "PRE", "S", "STRONG", "TABLE", "TBODY", "TD", "TH", "THEAD", "TR", "U", "UL"]);
+const NOTE_TAGS = new Set(["A", "ASIDE", "B", "BLOCKQUOTE", "BR", "CODE", "DEL", "DIV", "EM", "H1", "H2", "H3", "H4", "HR", "I", "LI", "OL", "P", "PRE", "S", "STRONG", "TABLE", "TBODY", "TD", "TH", "THEAD", "TR", "U", "UL"]);
 const escapeHtml = (value) => value.replace(/[&<>'"]/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[character]);
 function safeUrl(value) { try { const url = new URL(value, location.href); return ["http:", "https:", "mailto:"].includes(url.protocol) ? url.href : ""; } catch { return ""; } }
 function sanitizeNoteHtml(html) {
@@ -89,10 +89,19 @@ function sanitizeNoteHtml(html) {
       clean(child);
       if (!NOTE_TAGS.has(child.tagName)) { child.replaceWith(...child.childNodes); return; }
       const href = child.tagName === "A" ? safeUrl(child.getAttribute("href") || child.getAttribute("data-safe-href") || "") : "";
+      // Gemini et les autres IA emploient souvent un simple <div> mis en forme
+      // pour les avertissements. On conserve le sens, pas leur CSS externe.
+      const isCallout = child.tagName === "ASIDE" || child.tagName === "BLOCKQUOTE"
+        || child.classList.contains("note-callout") || child.hasAttribute("data-note-callout")
+        || /^(?:⚠️?|❗|ℹ️?|NOTE\s*:|ATTENTION\s*:|IMPORTANT\s*:)/i.test(child.textContent.trim());
+      const listStart = child.tagName === "OL" && /^\d+$/.test(child.getAttribute("start") || "") ? child.getAttribute("start") : "";
       [...child.attributes].forEach((attribute) => child.removeAttribute(attribute.name));
       if (child.tagName === "A") {
         if (href) { child.href = href; child.target = "_blank"; child.rel = "noopener noreferrer"; }
       }
+      if (child.tagName === "OL") { child.className = "note-steps"; if (listStart) child.start = Number(listStart); }
+      if (child.tagName === "UL") child.className = "note-bullets";
+      if (isCallout) child.classList.add("note-callout");
     });
   };
   clean(documentCopy.body);
@@ -112,7 +121,7 @@ function plainTextToHtml(text) {
     const closeList = () => { if (list) { output.push(`</${list}>`); list = null; } };
     lines.forEach((line) => {
       const ordered = line.match(/^\s*\d+[.)]\s+(.*)$/); const bullet = line.match(/^\s*[-*•]\s+(.*)$/);
-      if (ordered || bullet) { const type = ordered ? "ol" : "ul"; if (type !== list) { closeList(); output.push(`<${type}>`); list = type; } output.push(`<li>${inlineMarkdown((ordered || bullet)[1])}</li>`); return; }
+      if (ordered || bullet) { const type = ordered ? "ol" : "ul"; if (type !== list) { closeList(); output.push(`<${type} class=\"${ordered ? "note-steps" : "note-bullets"}\">`); list = type; } output.push(`<li>${inlineMarkdown((ordered || bullet)[1])}</li>`); return; }
       closeList();
       if (/^#{1,4}\s+/.test(line)) { const level = Math.min(4, line.match(/^#+/)[0].length); output.push(`<h${level}>${inlineMarkdown(line.replace(/^#+\s+/, ""))}</h${level}>`); }
       else if (line.trim()) output.push(`<p>${inlineMarkdown(line)}</p>`);
