@@ -19,7 +19,7 @@
                     aria-label="Heure actuelle">--:--</time></div>
             <p id="brand-date" class="brand-date hidden" aria-live="polite"></p>
             <!-- Secours immédiat : l'heure apparaît même si un ancien app.js est gardé en cache. -->
-            <script>document.querySelector('#clock').textContent=new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});</script>
+            <script>(()=>{const now=new Date(),day=now.toLocaleDateString('fr-FR',{weekday:'long'}).toUpperCase(),time=now.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}),clock=document.querySelector('#clock');clock.textContent=`${day} · ${time}`;clock.setAttribute('aria-label',`${day}, ${time}`)})()</script>
         </header>
         <nav class="nav"><a href="#todos" data-link="todos">✓ Tâches</a><a href="#notes" data-link="notes">✎ Notes</a><a href="#calendar" data-link="calendar">▦ Calendrier</a><a href="#maintenance" data-link="maintenance">⚙ Maintenance</a>
         </nav>

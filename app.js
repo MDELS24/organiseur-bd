@@ -44,7 +44,9 @@ const clearStore = (name) => store(name, "readwrite", (s) => s.clear());
 
 // --- État, thème et navigation. ---
 function updateClock() {
-  $("#clock").textContent = new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+  const now = new Date(); const day = now.toLocaleDateString("fr-FR", { weekday: "long" }).toUpperCase();
+  const time = now.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+  $("#clock").textContent = `${day} · ${time}`; $("#clock").setAttribute("aria-label", `${day}, ${time}`);
 }
 function revealBrandDate() {
   const bubble = $("#brand-date");
