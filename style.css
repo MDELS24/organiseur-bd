@@ -234,6 +234,25 @@
             text-transform: uppercase
         }
 
+        .maintenance-panel {
+            display: grid;
+            gap: 12px;
+            max-width: 600px;
+            border: 3px solid var(--ink);
+            background: #fffaf0;
+            box-shadow: 5px 5px var(--shadow);
+            padding: 18px;
+        }
+
+        .maintenance-panel > p:first-child {
+            margin: 0 0 4px;
+            color: var(--muted);
+            font: italic 1rem/1.45 Georgia, serif;
+        }
+
+        .maintenance-panel button { justify-self: start }
+        .maintenance-message { min-height: 1.4em; margin: 4px 0 0; font-weight: 800 }
+
         /* Calendrier mensuel : une grille sobre, façon agenda cartonné ancien. */
         .calendar-shell {
             position: relative;
@@ -1259,7 +1278,8 @@ body.dark {
         body.dark .calendar-shell,
         body.dark .calendar-day,
         body.dark .calendar-day.today,
-        body.dark .wait-game { background: #203d58; color: var(--ink) }
+        body.dark .wait-game,
+        body.dark .maintenance-panel { background: #203d58; color: var(--ink) }
 
         body.dark .task.done { background: #3d5366; color: #e7dabd }
         body.dark .note-list { background: repeating-linear-gradient(135deg, #294b68 0 9px, #213f5b 9px 18px) }

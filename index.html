@@ -20,7 +20,7 @@
             <!-- Secours immédiat : l'heure apparaît même si un ancien app.js est gardé en cache. -->
             <script>document.querySelector('#clock').textContent=new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});</script>
         </header>
-        <nav class="nav"><a href="#todos" data-link="todos">✓ Tâches</a><a href="#notes" data-link="notes">✎ Notes</a><a href="#calendar" data-link="calendar">▦ Calendrier</a>
+        <nav class="nav"><a href="#todos" data-link="todos">✓ Tâches</a><a href="#notes" data-link="notes">✎ Notes</a><a href="#calendar" data-link="calendar">▦ Calendrier</a><a href="#maintenance" data-link="maintenance">⚙ Maintenance</a>
         </nav>
         <section id="todos" class="view">
             <div class="tools">
@@ -61,6 +61,16 @@
                 <button id="calendar-today" class="calendar-today" type="button" aria-label="Revenir au mois actuel" title="Revenir au mois actuel">⌾</button>
                 <div class="calendar-weekdays" aria-hidden="true"><span>SEM.</span><span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span></div>
                 <div id="calendar-grid" class="calendar-days" role="grid" aria-label="Calendrier du mois en cours"></div>
+            </div>
+        </section>
+        <section id="maintenance" class="view hidden" aria-labelledby="maintenance-title">
+            <div class="tools"><h2 id="maintenance-title">Maintenance</h2></div>
+            <div class="maintenance-panel">
+                <p>Ces commandes servent à repartir sur une base saine. Les suppressions cloud sont définitives après confirmation.</p>
+                <button id="reset-notes" type="button">Effacer toutes les notes</button>
+                <button id="reset-tasks" type="button">Effacer toutes les tâches</button>
+                <button id="clear-local" class="alt" type="button">Vider le cache local</button>
+                <p id="maintenance-message" class="maintenance-message" role="status" aria-live="polite"></p>
             </div>
         </section>
         <footer class="account-actions"><button id="signout" class="hidden" type="button">↪ Se déconnecter</button></footer>

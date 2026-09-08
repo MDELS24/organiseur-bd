@@ -39,6 +39,7 @@ async function store(name, mode, action) {
 const all = (name) => store(name, "readonly", (s) => s.getAll());
 const put = (name, value) => store(name, "readwrite", (s) => s.put(value));
 const drop = (name, id) => store(name, "readwrite", (s) => s.delete(id));
+const clearStore = (name) => store(name, "readwrite", (s) => s.clear());
 
 // --- État, thème et navigation. ---
 function updateClock() {
@@ -63,8 +64,8 @@ function account(sessionUser) {
   if (!configured) $("#login-message").textContent = "La configuration Supabase est indisponible.";
 }
 function route() {
-  const view = ["notes", "calendar"].includes(location.hash.slice(1)) ? location.hash.slice(1) : "todos";
-  ["todos", "notes", "calendar"].forEach((id) => $("#" + id).classList.toggle("hidden", id !== view));
+  const view = ["notes", "calendar", "maintenance"].includes(location.hash.slice(1)) ? location.hash.slice(1) : "todos";
+  ["todos", "notes", "calendar", "maintenance"].forEach((id) => $("#" + id).classList.toggle("hidden", id !== view));
   document.querySelectorAll("[data-link]").forEach((link) => link.classList.toggle("active", link.dataset.link === view));
 }
 
@@ -350,8 +351,9 @@ function sync() {
 async function subscribe() {
   if (todoChannel) await sbClient.removeChannel(todoChannel); if (noteChannel) await sbClient.removeChannel(noteChannel);
   const options = { event: "*", schema: "public", filter: `user_id=eq.${user.id}` };
-  todoChannel = sbClient.channel(`todos:${user.id}`).on("postgres_changes", { ...options, table: "todos" }, () => pull("todos")).subscribe();
-  noteChannel = sbClient.channel(`notes:${user.id}`).on("postgres_changes", { ...options, table: "notes" }, () => pull("notes")).subscribe();
+  // Les événements temps réel rejoignent la file unique : aucune relecture ne peut écraser une édition en cours.
+  todoChannel = sbClient.channel(`todos:${user.id}`).on("postgres_changes", { ...options, table: "todos" }, () => sync()).subscribe();
+  noteChannel = sbClient.channel(`notes:${user.id}`).on("postgres_changes", { ...options, table: "notes" }, () => sync()).subscribe();
 }
 
 // --- Événements utilisateur. ---
@@ -385,6 +387,31 @@ function openReader() {
 function closeReader() { $("#note-reader").classList.add("hidden"); document.body.classList.remove("reading-note"); $("#read-note").focus(); }
 $("#read-note").onclick = openReader; $("#close-reader").onclick = closeReader;
 document.addEventListener("keydown", (event) => { if (event.key === "Escape" && !$("#note-reader").classList.contains("hidden")) closeReader(); });
+async function removeQueuedOperations(table) {
+  const operations = await all(QUEUE);
+  await Promise.all(operations.filter((operation) => operation.table === table).map((operation) => drop(QUEUE, operation.id)));
+}
+async function resetRemoteCollection(kind) {
+  const isNotes = kind === "notes"; const table = isNotes ? "notes" : "todos"; const storeName = isNotes ? "notes" : "tasks";
+  const label = isNotes ? "toutes vos notes" : "toutes vos tâches";
+  if (!confirm(`Voulez-vous définitivement effacer ${label}, sur cet appareil et dans Supabase ?`)) return;
+  try {
+    if (configured && user) { const { error } = await sbClient.from(table).delete().eq("user_id", user.id); if (error) throw error; }
+    await Promise.all([clearStore(storeName), removeQueuedOperations(table)]);
+    if (isNotes) { notes = []; selectedNoteId = null; renderNotes(); } else { tasks = []; renderTasks(); }
+    $("#maintenance-message").textContent = `${isNotes ? "Notes" : "Tâches"} effacées localement et dans Supabase.`;
+  } catch (error) { console.error(error); $("#maintenance-message").textContent = "Suppression impossible : vérifiez la connexion Supabase."; status("Erreur"); }
+}
+async function clearLocalCache() {
+  if (!confirm("Vider les copies locales de tâches et notes ? Les données Supabase ne seront pas supprimées.")) return;
+  await Promise.all([clearStore("tasks"), clearStore("notes"), clearStore(QUEUE)]);
+  tasks = []; notes = []; selectedNoteId = null; renderTasks(); renderNotes();
+  $("#maintenance-message").textContent = user ? "Cache local vidé. Les données Supabase vont être relues." : "Cache local vidé.";
+  if (user) sync();
+}
+$("#reset-notes").onclick = () => resetRemoteCollection("notes");
+$("#reset-tasks").onclick = () => resetRemoteCollection("tasks");
+$("#clear-local").onclick = clearLocalCache;
 $("#delete-note").onclick = () => selectedNoteId && deleteNote(selectedNoteId);
 $("#calendar-previous").onclick = () => moveCalendar(-1);
 $("#calendar-next").onclick = () => moveCalendar(1);
