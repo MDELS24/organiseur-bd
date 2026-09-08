@@ -7,6 +7,7 @@ const DB_NAME = "organiseur-bd";
 const QUEUE = "queue";
 const EMAIL_COOLDOWN_MS = 60_000;
 const EMAIL_COOLDOWN_KEY = "organiseur-email-cooldown-until";
+const MARKDOWN_DRAFT_KEY = "organiseur-markdown-draft";
 const MONTHS = ["JANVIER", "FÉVRIER", "MARS", "AVRIL", "MAI", "JUIN", "JUILLET", "AOÛT", "SEPTEMBRE", "OCTOBRE", "NOVEMBRE", "DÉCEMBRE"];
 
 let tasks = [], notes = [], selectedNoteId = null, user = null, noteTimer = null, todoChannel = null, noteChannel = null;
@@ -16,6 +17,7 @@ let emailCooldownTimer = null, bubbleTimer = null, bubbleScore = 0, completedMis
 let cipher = ["✦", "◈", "⌁"];
 const ARCHIVE_REWARDS = ["Insigne du cartographe", "Lentille de terrain", "Boussole méridienne", "Sceau des archives"];
 let brandDateTimer = null;
+let markdownTimer = null, markdownPreviewVisible = false;
 
 // --- IndexedDB : la copie locale et la file d'attente hors ligne. ---
 function openDb() {
@@ -75,9 +77,10 @@ function account(sessionUser) {
   if (!configured) $("#login-message").textContent = "La configuration Supabase est indisponible.";
 }
 function route() {
-  const view = ["notes", "calendar", "maintenance"].includes(location.hash.slice(1)) ? location.hash.slice(1) : "todos";
-  ["todos", "notes", "calendar", "maintenance"].forEach((id) => $("#" + id).classList.toggle("hidden", id !== view));
+  const view = ["notes", "markdown", "calendar", "maintenance"].includes(location.hash.slice(1)) ? location.hash.slice(1) : "todos";
+  ["todos", "notes", "markdown", "calendar", "maintenance"].forEach((id) => $("#" + id).classList.toggle("hidden", id !== view));
   document.querySelectorAll("[data-link]").forEach((link) => link.classList.toggle("active", link.dataset.link === view));
+  if (view === "markdown") renderMarkdownPreview();
 }
 
 // --- Notes riches : seul un sous-ensemble HTML sûr est conservé lors d'un collage. ---
@@ -191,6 +194,49 @@ function formatCodeBlocks(root) {
     const source = code.textContent; const language = normaliseLanguage(code.dataset.language || code.parentElement.dataset.language || detectLanguage(source));
     code.dataset.language = language; code.parentElement.dataset.language = language; code.innerHTML = highlightSource(source, language);
   });
+}
+
+// --- Atelier Markdown : un brouillon local, volontairement indépendant de Supabase. ---
+function readMarkdownDraft() {
+  try { return JSON.parse(localStorage.getItem(MARKDOWN_DRAFT_KEY)) || { title: "", content: "" }; }
+  catch { return { title: "", content: "" }; }
+}
+function renderMarkdownPreview() {
+  const content = $("#markdown-content").value;
+  const preview = $("#markdown-preview"); preview.innerHTML = plainTextToHtml(content); preview.dataset.empty = String(!content.trim());
+  formatCodeBlocks(preview);
+}
+function saveMarkdownDraftSoon() {
+  renderMarkdownPreview(); clearTimeout(markdownTimer); $("#markdown-save-state").textContent = "Enregistrement local…";
+  markdownTimer = setTimeout(() => {
+    try {
+      localStorage.setItem(MARKDOWN_DRAFT_KEY, JSON.stringify({ title: $("#markdown-note-title").value.slice(0, 160), content: $("#markdown-content").value }));
+      $("#markdown-save-state").textContent = "Brouillon enregistré sur cet appareil";
+    } catch { $("#markdown-save-state").textContent = "Impossible d’enregistrer le brouillon local"; }
+  }, 250);
+}
+function renderMarkdownWorkspace() {
+  const draft = readMarkdownDraft(); $("#markdown-note-title").value = draft.title || ""; $("#markdown-content").value = draft.content || "";
+  renderMarkdownPreview(); setMarkdownPreviewVisible(false);
+}
+function setMarkdownPreviewVisible(visible) {
+  markdownPreviewVisible = visible; const workspace = $("#markdown-workspace"); const toggle = $("#markdown-view-toggle");
+  workspace.classList.toggle("show-preview", visible); toggle.textContent = visible ? "Écrire" : "Aperçu"; toggle.setAttribute("aria-pressed", String(visible));
+}
+function replaceMarkdownSelection(before, after, fallback) {
+  const area = $("#markdown-content"); const start = area.selectionStart; const end = area.selectionEnd; const selected = area.value.slice(start, end) || fallback;
+  area.setRangeText(`${before}${selected}${after}`, start, end, "end"); area.focus(); saveMarkdownDraftSoon();
+}
+function insertMarkdown(action) {
+  const area = $("#markdown-content"); const start = area.selectionStart; const end = area.selectionEnd; const selected = area.value.slice(start, end);
+  if (action === "heading") return replaceMarkdownSelection("# ", "", "Un titre");
+  if (action === "bold") return replaceMarkdownSelection("**", "**", "mot important");
+  if (action === "link") return replaceMarkdownSelection("[", "](https://example.com)", "texte du lien");
+  if (action === "code") return replaceMarkdownSelection("```javascript\n", "\n```", "// votre code");
+  const linePrefix = action === "bullets" ? "- " : action === "steps" ? "1. " : "> ";
+  const text = selected || (action === "bullets" ? "un élément" : action === "steps" ? "une étape" : "une citation");
+  const value = text.split("\n").map((line, index) => action === "steps" ? `${index + 1}. ${line}` : `${linePrefix}${line}`).join("\n");
+  area.setRangeText(value, start, end, "end"); area.focus(); saveMarkdownDraftSoon();
 }
 function normaliseNoteContent(content) {
   const value = String(content || "");
@@ -496,9 +542,9 @@ async function resetRemoteCollection(kind) {
   } catch (error) { console.error(error); $("#maintenance-message").textContent = "Suppression impossible : vérifiez la connexion Supabase."; status("Erreur"); }
 }
 async function clearLocalCache() {
-  if (!confirm("Vider les copies locales de tâches et notes ? Les données Supabase ne seront pas supprimées.")) return;
+  if (!confirm("Vider les copies locales de tâches, notes et du brouillon Markdown ? Les données Supabase ne seront pas supprimées.")) return;
   await Promise.all([clearStore("tasks"), clearStore("notes"), clearStore(QUEUE)]);
-  tasks = []; notes = []; selectedNoteId = null; renderTasks(); renderNotes();
+  localStorage.removeItem(MARKDOWN_DRAFT_KEY); tasks = []; notes = []; selectedNoteId = null; renderTasks(); renderNotes(); renderMarkdownWorkspace();
   $("#maintenance-message").textContent = user ? "Cache local vidé. Les données Supabase vont être relues." : "Cache local vidé.";
   if (user) sync();
 }
@@ -506,6 +552,10 @@ $("#reset-notes").onclick = () => resetRemoteCollection("notes");
 $("#reset-tasks").onclick = () => resetRemoteCollection("tasks");
 $("#clear-local").onclick = clearLocalCache;
 $("#delete-note").onclick = () => selectedNoteId && deleteNote(selectedNoteId);
+$("#markdown-note-title").oninput = saveMarkdownDraftSoon;
+$("#markdown-content").oninput = saveMarkdownDraftSoon;
+$("#markdown-view-toggle").onclick = () => setMarkdownPreviewVisible(!markdownPreviewVisible);
+document.querySelectorAll("[data-md-action]").forEach((button) => { button.onclick = () => insertMarkdown(button.dataset.mdAction); });
 $("#calendar-previous").onclick = () => moveCalendar(-1);
 $("#calendar-next").onclick = () => moveCalendar(1);
 $("#calendar-today").onclick = returnToCurrentMonth;
@@ -538,7 +588,7 @@ $("#brand-reveal").onclick = revealBrandDate;
 $("#brand-reveal").onkeydown = (event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); revealBrandDate(); } };
 
 async function init() {
-  [tasks, notes] = await Promise.all([all("tasks"), all("notes")]); renderTasks(); renderNotes(); renderCalendar(); route(); updateClock(); setInterval(updateClock, 1000); setTheme(localStorage.getItem("organiseur-theme") === "dark"); account(null); updateEmailCooldown();
+  [tasks, notes] = await Promise.all([all("tasks"), all("notes")]); renderTasks(); renderNotes(); renderMarkdownWorkspace(); renderCalendar(); route(); updateClock(); setInterval(updateClock, 1000); setTheme(localStorage.getItem("organiseur-theme") === "dark"); account(null); updateEmailCooldown();
   if (!configured) return;
   const { data: { session } } = await sbClient.auth.getSession(); account(session?.user || null);
   if (session?.user) { await sync(); await subscribe(); }

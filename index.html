@@ -21,7 +21,7 @@
             <!-- Secours immédiat : l'heure apparaît même si un ancien app.js est gardé en cache. -->
             <script>(()=>{const now=new Date(),day=now.toLocaleDateString('fr-FR',{weekday:'long'}).toUpperCase(),time=now.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}),clock=document.querySelector('#clock');clock.textContent=`${day} · ${time}`;clock.setAttribute('aria-label',`${day}, ${time}`)})()</script>
         </header>
-        <nav class="nav"><a href="#todos" data-link="todos">✓ Tâches</a><a href="#notes" data-link="notes">✎ Notes</a><a href="#calendar" data-link="calendar">▦ Calendrier</a><a href="#maintenance" data-link="maintenance">⚙ Maintenance</a>
+        <nav class="nav"><a href="#todos" data-link="todos">✓ Tâches</a><a href="#notes" data-link="notes">✎ Notes</a><a href="#markdown" data-link="markdown">⌘ Markdown</a><a href="#calendar" data-link="calendar">▦ Calendrier</a><a href="#maintenance" data-link="maintenance">⚙ Maintenance</a>
         </nav>
         <section id="todos" class="view">
             <div class="tools">
@@ -48,6 +48,15 @@
                             id="sync-status" class="sync-icon" role="status" aria-live="polite" title="État de synchronisation">○</span></div>
                     <p id="editor-empty" class="empty">Choisissez une note ou créez-en une.</p>
                 </article>
+            </div>
+        </section>
+        <section id="markdown" class="view hidden" aria-labelledby="markdown-title-heading">
+            <div class="tools"><h2 id="markdown-title-heading">Atelier Markdown</h2><button id="markdown-view-toggle" type="button" aria-pressed="false">Aperçu</button></div>
+            <p class="markdown-intro">Écrivez simplement à gauche ; le résultat se construit à droite. Votre brouillon reste enregistré sur cet appareil.</p>
+            <div id="markdown-workspace" class="markdown-workspace">
+                <aside class="markdown-guide" aria-label="Aide Markdown débutant"><h3>Mode d’emploi</h3><p><strong># Titre</strong><br>Un grand titre</p><p><strong>**gras**</strong><br>Mettre un mot en valeur</p><p><strong>- élément</strong><br>Créer une liste</p><p><strong>```js</strong><br>Ajouter un bloc de code</p></aside>
+                <article class="markdown-editor-panel"><label for="markdown-note-title">Titre</label><input id="markdown-note-title" maxlength="160" placeholder="Titre du brouillon"><div class="markdown-actions" aria-label="Outils de mise en forme"><button type="button" data-md-action="heading" title="Titre">H</button><button type="button" data-md-action="bold" title="Gras"><strong>B</strong></button><button type="button" data-md-action="bullets" title="Liste">•</button><button type="button" data-md-action="steps" title="Étapes">1.</button><button type="button" data-md-action="link" title="Lien">↗</button><button type="button" data-md-action="code" title="Code">&lt;/&gt;</button><button type="button" data-md-action="quote" title="Citation">❝</button></div><label class="sr-only" for="markdown-content">Contenu Markdown</label><textarea id="markdown-content" spellcheck="true" placeholder="Commencez ici…&#10;&#10;# Mon idée&#10;&#10;Écrivez naturellement, puis utilisez les boutons ci-dessus."></textarea><p id="markdown-save-state" class="markdown-save-state" role="status" aria-live="polite">Brouillon local prêt</p></article>
+                <article class="markdown-preview-panel" aria-labelledby="markdown-preview-heading"><h3 id="markdown-preview-heading">Aperçu</h3><div id="markdown-preview" class="rich-content markdown-preview"></div></article>
             </div>
         </section>
         <section id="calendar" class="view hidden" aria-labelledby="calendar-month">

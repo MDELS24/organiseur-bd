@@ -1673,3 +1673,62 @@ body.dark {
             .calendar-days, .calendar-week-row { gap: 4px }
             .calendar-week-row.current-week::before { inset: -4px }
         }
+
+        /* Atelier Markdown : double page claire, pensée pour écrire sans
+           connaître la syntaxe avant de l'apprendre par les exemples. */
+        .markdown-intro { margin: 0 0 13px; color: var(--muted); font: italic 1rem/1.45 Georgia, serif }
+        .markdown-workspace {
+            display: grid;
+            grid-template-columns: minmax(145px, .52fr) minmax(0, 1fr) minmax(0, 1fr);
+            grid-template-areas: "guide editor preview";
+            align-items: start;
+            gap: 14px;
+        }
+
+        .markdown-guide, .markdown-editor-panel, .markdown-preview-panel {
+            min-width: 0;
+            border: 3px solid var(--ink);
+            background: #fffaf0;
+            box-shadow: 4px 4px var(--shadow);
+        }
+
+        .markdown-guide { grid-area: guide; padding: 12px; background: repeating-linear-gradient(135deg, #e2c66e 0 9px, #ddbe60 9px 18px) }
+        .markdown-guide h3, .markdown-preview-panel h3 { margin: 0 0 10px; color: var(--ink); font: 900 1rem/1 Impact, "Arial Black", sans-serif; text-transform: uppercase }
+        .markdown-guide p { margin: 0 0 11px; color: #142941; font: .88rem/1.35 Georgia, serif }
+        .markdown-guide p:last-child { margin-bottom: 0 }
+        .markdown-guide strong { font-family: "Arial Black", Impact, sans-serif }
+
+        .markdown-editor-panel { grid-area: editor; display: flex; flex-direction: column; padding: 12px }
+        .markdown-editor-panel > label { margin: 0 0 4px; color: var(--muted); font: 900 .7rem/1 Arial, sans-serif; letter-spacing: .08em; text-transform: uppercase }
+        #markdown-note-title { width: 100%; min-width: 0; box-sizing: border-box; border: 0; border-bottom: 2px solid var(--ink); background: transparent; padding: 3px 1px 8px; color: var(--ink); font: 900 1.18rem/1.15 Impact, "Arial Black", sans-serif; outline: none }
+        #markdown-note-title:focus { border-bottom-color: var(--red) }
+
+        .markdown-actions { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0 8px }
+        .markdown-actions button { min-width: 32px; min-height: 30px; padding: 5px 7px; background: #f0c84b; box-shadow: 2px 2px var(--shadow); color: #142941; font: 900 .78rem/1 "Arial Black", Impact, sans-serif }
+        .markdown-actions button:hover { transform: translateY(-1px); filter: brightness(1.06) }
+        .markdown-actions button:active { transform: translate(1px, 1px); box-shadow: 1px 1px var(--shadow) }
+
+        #markdown-content { box-sizing: border-box; width: 100%; min-width: 0; min-height: 420px; resize: vertical; border: 2px solid var(--ink); background: #fff9e9; padding: 11px; color: #142941; font: .95rem/1.52 Consolas, "Courier New", monospace; outline: none; overflow-wrap: anywhere }
+        #markdown-content:focus { border-color: var(--red); box-shadow: inset 0 0 0 1px rgba(185,54,63,.25) }
+        .markdown-save-state { min-height: 1.2em; margin: 7px 1px 0; color: var(--muted); font: italic .76rem/1.2 Georgia, serif }
+
+        .markdown-preview-panel { grid-area: preview; min-height: 476px; padding: 12px; overflow: hidden }
+        .markdown-preview { min-width: 0; overflow-wrap: anywhere }
+        .markdown-preview[data-empty="true"]::before { content: "Votre mise en forme apparaîtra ici."; display: block; padding-top: 8px; color: var(--muted); font: italic 1rem/1.45 Georgia, serif }
+        .sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap }
+
+        body.dark .markdown-guide, body.dark .markdown-editor-panel, body.dark .markdown-preview-panel { border-color: #f8edd2; background: #203d58; color: #f8edd2; box-shadow: 4px 4px #06111f }
+        body.dark .markdown-guide { background: repeating-linear-gradient(135deg, #365c70 0 9px, #294b68 9px 18px) }
+        body.dark .markdown-guide h3, body.dark .markdown-guide p, body.dark .markdown-preview-panel h3, body.dark #markdown-note-title { color: #f8edd2 }
+        body.dark #markdown-note-title { border-bottom-color: #f8edd2 }
+        body.dark #markdown-content { border-color: #f8edd2; background: #091a2b; color: #fff4d8 }
+        body.dark .markdown-actions button { border-color: #f8edd2; background: #f0c84b; color: #142941 }
+
+        @media (max-width: 760px) {
+            .markdown-workspace { grid-template-columns: minmax(0, 1fr); grid-template-areas: "guide" "editor" "preview" }
+            #markdown-content { min-height: 48vh; resize: none }
+            .markdown-preview-panel { min-height: 48vh }
+            .markdown-preview-panel { display: none }
+            .markdown-workspace.show-preview .markdown-guide, .markdown-workspace.show-preview .markdown-editor-panel { display: none }
+            .markdown-workspace.show-preview .markdown-preview-panel { display: block }
+        }
