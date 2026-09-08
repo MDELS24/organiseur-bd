@@ -630,6 +630,25 @@
             color: #fffaf0;
         }
 
+        .note-title-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 0;
+        }
+
+        .note-title-row #note-title { flex: 1 1 auto; min-width: 0 }
+
+        .note-title-row .read-note {
+            flex: 0 0 auto;
+            width: 34px;
+            height: 34px;
+            padding: 0;
+            margin-top: 8px;
+            display: grid;
+            place-items: center;
+        }
+
         /* Icône de synchronisation, discrètement placée sous l'éditeur à droite. */
         .note-sync {
             display: flex;
@@ -1890,7 +1909,7 @@ body.dark {
         body.dark .note-list-footer { border-top-color: #f8edd2; background: repeating-linear-gradient(135deg, #a62d37 0 9px, #d5ae41 9px 17px, #28608d 17px 26px) }
 
         /* Arborescence des tâches : mêmes repères de classement que les notes. */
-        .task { position: relative; box-sizing: border-box; padding-right: 68px }
+        .task { position: relative; box-sizing: border-box; padding-right: 98px }
         .task[draggable="true"] { cursor: grab }
         .task[draggable="true"]:active { cursor: grabbing }
         .task.dragging { opacity: .46; filter: saturate(.55); transform: scale(.98) }
@@ -1898,16 +1917,20 @@ body.dark {
         .task[data-depth]:not([data-depth="0"])::after { content: ""; position: absolute; top: -9px; bottom: 50%; left: -10px; width: 8px; border-left: 2px solid var(--blue); border-bottom: 2px solid var(--blue); pointer-events: none }
         .task .task-grip { flex: 0 0 auto; color: var(--blue); font: 900 1rem/1 Arial, sans-serif; letter-spacing: -3px; pointer-events: none }
         .task > span:not(.task-grip) { flex: 1; min-width: 0 }
-        .task-child, .task .delete { position: absolute; top: 50%; display: grid; width: 22px; height: 22px; place-items: center; padding: 0; border: 2px solid var(--ink); color: #142941; font: 900 1rem/.8 Impact, "Arial Black", sans-serif }
-        .task-child { right: 38px; background: #f0c84b; box-shadow: 1px 1px var(--shadow); transform: translateY(-50%) }
+        .task-child, .task-edit, .task .delete { position: absolute; top: 50%; display: grid; width: 22px; height: 22px; place-items: center; padding: 0; border: 2px solid var(--ink); color: #142941; font: 900 1rem/.8 Impact, "Arial Black", sans-serif }
+        .task-child { right: 66px; background: #f0c84b; box-shadow: 1px 1px var(--shadow); transform: translateY(-50%) }
+        .task-edit { right: 38px; background: var(--blue); color: #fffaf0; box-shadow: 1px 1px var(--shadow); transform: translateY(-50%); font-size: .85rem }
         .task .delete { right: 9px; background: var(--yellow); transform: translateY(-50%) }
-        .task-child:hover { filter: brightness(1.08) }
-        .task-child:active { transform: translateY(-50%) translate(1px, 1px); box-shadow: none }
+        .task-child:hover, .task-edit:hover { filter: brightness(1.08) }
+        .task-child:active, .task-edit:active { transform: translateY(-50%) translate(1px, 1px); box-shadow: none }
+        .task-edit-field { flex: 1 1 auto !important; min-width: 0; border: 2px solid var(--red); background: #fffef6; padding: 4px 6px; color: var(--ink); font: inherit; outline: none }
         body.dark .task[data-depth]:not([data-depth="0"])::after { border-color: #7dc2db }
         body.dark .task.drop-target { border-color: #ee5960; background: #365c70; box-shadow: 4px 4px #a62d37, inset 0 0 0 2px rgba(248,237,210,.12) }
         body.dark .task .task-grip { color: #7dc2db }
-        body.dark .task-child, body.dark .task .delete { border-color: #f8edd2; color: #142941 }
+        body.dark .task-child, body.dark .task-edit, body.dark .task .delete { border-color: #f8edd2 }
+        body.dark .task-edit { color: #fffaf0; background: #28608d }
+        body.dark .task-edit-field { border-color: #ee5960; background: #091a2b; color: #fff4d8 }
         @media (max-width: 650px) {
-            .task { gap: 8px; padding: 10px 62px 10px 10px }
+            .task { gap: 8px; padding: 10px 92px 10px 10px }
             .task[data-depth]:not([data-depth="0"])::after { left: -8px; width: 6px }
         }

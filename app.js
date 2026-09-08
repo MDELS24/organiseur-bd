@@ -292,12 +292,31 @@ function renderTasks() {
     const text = document.createElement("span"); text.textContent = task.text;
     const child = document.createElement("button"); child.className = "task-child"; child.type = "button"; child.textContent = "+"; child.title = "Créer une sous-tâche"; child.setAttribute("aria-label", `Créer une sous-tâche de ${task.text}`);
     child.onclick = () => createChildTask(task.id);
+    const edit = document.createElement("button"); edit.className = "task-edit"; edit.type = "button"; edit.textContent = "✎"; edit.title = "Modifier la tâche"; edit.setAttribute("aria-label", `Modifier ${task.text}`);
+    edit.onclick = () => editTask(task, text);
     const remove = document.createElement("button"); remove.className = "delete"; remove.type = "button"; remove.textContent = "×"; remove.setAttribute("aria-label", "Supprimer cette tâche");
     remove.onclick = () => deleteTask(task.id);
-    item.append(check, grip, text, child, remove); list.append(item);
+    item.append(check, grip, text, child, edit, remove); list.append(item);
     const nextAncestry = new Set(ancestry); nextAncestry.add(task.id); childrenOf(task.id).forEach((nested) => appendTask(nested, depth + 1, nextAncestry));
   };
   tasks.filter((task) => !task.parentId || !byId.has(task.parentId)).forEach((task) => appendTask(task, 0, new Set()));
+}
+function editTask(task, textElement) {
+  const field = document.createElement("input");
+  field.className = "task-edit-field"; field.type = "text"; field.maxLength = 180; field.value = task.text;
+  field.setAttribute("aria-label", "Modifier le texte de la tâche"); textElement.replaceWith(field); field.focus(); field.select();
+  let completed = false;
+  const finish = async (save) => {
+    if (completed) return; completed = true;
+    const value = field.value.trim();
+    if (save && value && value !== task.text) { task.text = value; await change("tasks", task); }
+    renderTasks();
+  };
+  field.onkeydown = (event) => {
+    if (event.key === "Enter") { event.preventDefault(); finish(true); }
+    if (event.key === "Escape") { event.preventDefault(); finish(false); }
+  };
+  field.onblur = () => finish(true);
 }
 function canNestTask(childId, parentId) {
   if (!childId || childId === parentId) return false;
