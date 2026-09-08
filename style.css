@@ -1768,3 +1768,19 @@ body.dark {
             #notes-search { flex: 1 1 150px; width: auto }
             #reader-content[contenteditable="true"] { min-height: calc(100vh - 10rem) }
         }
+
+        /* Aucun contenu de note ne doit élargir la grille. Les longues URL et
+           lignes de code restent dans leur colonne, avec défilement interne. */
+        .notes-layout { grid-template-columns: minmax(0, 280px) minmax(0, 1fr); max-width: 100%; overflow: hidden }
+        .note-list, .editor { min-width: 0; max-width: 100% }
+        .editor { overflow: hidden }
+        #note-content { box-sizing: border-box; width: 100%; min-width: 0; max-width: 100%; overflow-x: auto; overscroll-behavior-inline: contain }
+        .rich-content, .rich-editor { min-width: 0; max-width: 100%; overflow-wrap: anywhere }
+        .rich-content p, .rich-content li, .rich-content td, .rich-content blockquote,
+        .rich-editor p, .rich-editor li, .rich-editor td, .rich-editor blockquote { overflow-wrap: anywhere; word-break: normal }
+        .rich-content pre, .rich-editor pre { min-inline-size: 0; max-inline-size: 100%; contain: inline-size }
+        .rich-content table, .rich-editor table { display: block; box-sizing: border-box; max-width: 100%; overflow-x: auto }
+
+        @media (max-width: 650px) {
+            .notes-layout { grid-template-columns: minmax(0, 1fr) }
+        }
