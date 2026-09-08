@@ -1825,13 +1825,53 @@ body.dark {
         /* Arborescence de notes : le décalage et le petit raccord indiquent
            clairement qu'une carte est une sous-note. */
         .note-card { box-sizing: border-box }
+        .note-card[draggable="true"] { cursor: grab }
+        .note-card[draggable="true"]:active { cursor: grabbing }
+        .note-card.dragging { opacity: .46; filter: saturate(.55); transform: scale(.98) }
+        .note-card.drop-target { border-color: var(--red); background: #f6e4a3; box-shadow: 4px 4px var(--red), inset 0 0 0 2px rgba(255,255,255,.56) }
         .note-card[data-depth]:not([data-depth="0"])::before { content: ""; position: absolute; top: -9px; bottom: 50%; left: -10px; width: 8px; border-left: 2px solid var(--blue); border-bottom: 2px solid var(--blue); pointer-events: none }
-        .note-open { padding-right: 58px }
+        .note-grip { position: absolute; top: 8px; left: 5px; color: var(--blue); font: 900 1rem/1 Arial, sans-serif; letter-spacing: -3px; pointer-events: none }
+        .note-open { padding-right: 58px; padding-left: 16px }
         .note-child { position: absolute; top: 7px; right: 34px; display: grid; width: 22px; height: 22px; place-items: center; padding: 0; border: 2px solid var(--ink); background: #f0c84b; box-shadow: 1px 1px var(--shadow); color: #142941; font: 900 1rem/.8 Impact, "Arial Black", sans-serif }
         .note-child:hover { filter: brightness(1.08) }
         .note-child:active { transform: translate(1px, 1px); box-shadow: none }
         body.dark .note-card[data-depth]:not([data-depth="0"])::before { border-color: #7dc2db }
+        body.dark .note-card.drop-target { border-color: #ee5960; background: #365c70; box-shadow: 4px 4px #a62d37, inset 0 0 0 2px rgba(248,237,210,.12) }
+        body.dark .note-grip { color: #7dc2db }
         body.dark .note-child { border-color: #f8edd2; background: #f0c84b; color: #142941 }
         @media (max-width: 650px) {
             .note-card[data-depth]:not([data-depth="0"])::before { left: -8px; width: 6px }
         }
+
+        /* Les titres Markdown ne doivent jamais hériter du cartouche du logo. */
+        #note-content h1, #note-content h2, #note-content h3, #note-content h4,
+        #reader-content h1, #reader-content h2, #reader-content h3, #reader-content h4,
+        #markdown-preview h1, #markdown-preview h2, #markdown-preview h3, #markdown-preview h4 {
+            display: block;
+            margin: 1.35em 0 .55em;
+            border: 0;
+            border-left: 4px solid var(--red);
+            background: transparent;
+            box-shadow: none;
+            padding: .02em 0 .02em .55em;
+            color: var(--ink);
+            font-family: "Trebuchet MS", Arial, sans-serif;
+            font-weight: 800;
+            letter-spacing: .01em;
+            line-height: 1.24;
+            text-align: left;
+            text-shadow: none;
+            text-transform: none;
+            transform: none;
+            cursor: text;
+        }
+        #note-content h1, #reader-content h1, #markdown-preview h1 { font-size: 1.46rem }
+        #note-content h2, #reader-content h2, #markdown-preview h2 { border-left-color: var(--blue); font-size: 1.22rem }
+        #note-content h3, #reader-content h3, #markdown-preview h3 { border-left-width: 3px; font-size: 1.06rem }
+        #note-content h4, #reader-content h4, #markdown-preview h4 { border-left-width: 2px; border-left-color: var(--muted); font-size: .96rem }
+        #note-content h1:first-child, #note-content h2:first-child, #note-content h3:first-child, #note-content h4:first-child,
+        #reader-content h1:first-child, #reader-content h2:first-child, #reader-content h3:first-child, #reader-content h4:first-child,
+        #markdown-preview h1:first-child, #markdown-preview h2:first-child, #markdown-preview h3:first-child, #markdown-preview h4:first-child { margin-top: 0 }
+        body.dark #note-content h1, body.dark #note-content h2, body.dark #note-content h3, body.dark #note-content h4,
+        body.dark #reader-content h1, body.dark #reader-content h2, body.dark #reader-content h3, body.dark #reader-content h4,
+        body.dark #markdown-preview h1, body.dark #markdown-preview h2, body.dark #markdown-preview h3, body.dark #markdown-preview h4 { background: transparent; color: #f8edd2; text-shadow: none }

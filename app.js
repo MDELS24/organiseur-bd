@@ -19,6 +19,7 @@ let cipher = ["✦", "◈", "⌁"];
 const ARCHIVE_REWARDS = ["Insigne du cartographe", "Lentille de terrain", "Boussole méridienne", "Sceau des archives"];
 let brandDateTimer = null;
 let markdownTimer = null, markdownPreviewVisible = false;
+let draggedNoteId = null;
 
 // --- IndexedDB : la copie locale et la file d'attente hors ligne. ---
 function openDb() {
@@ -292,6 +293,13 @@ function renderNotes() {
     if (ancestry.has(note.id)) return; // Protection contre une éventuelle boucle ancienne.
     const card = document.createElement("article"); card.className = `note-card${note.id === selectedNoteId ? " selected" : ""}`;
     const visualDepth = Math.min(depth, 4); card.dataset.depth = String(visualDepth); card.style.marginLeft = `${visualDepth * 14}px`; card.style.width = `calc(100% - ${visualDepth * 14}px)`;
+    card.draggable = true; card.setAttribute("aria-roledescription", "Note déplaçable"); card.title = "Glissez cette note sur une autre pour en faire une sous-note";
+    card.ondragstart = (event) => { draggedNoteId = note.id; card.classList.add("dragging"); event.dataTransfer.effectAllowed = "move"; event.dataTransfer.setData("text/plain", note.id); };
+    card.ondragend = () => { draggedNoteId = null; document.querySelectorAll(".note-card.drop-target").forEach((target) => target.classList.remove("drop-target")); card.classList.remove("dragging"); };
+    card.ondragover = (event) => { if (!canNestNote(draggedNoteId, note.id)) return; event.preventDefault(); event.dataTransfer.dropEffect = "move"; card.classList.add("drop-target"); };
+    card.ondragleave = () => card.classList.remove("drop-target");
+    card.ondrop = async (event) => { event.preventDefault(); card.classList.remove("drop-target"); const childId = event.dataTransfer.getData("text/plain") || draggedNoteId; if (canNestNote(childId, note.id)) await moveNoteToParent(childId, note.id); };
+    const grip = document.createElement("span"); grip.className = "note-grip"; grip.setAttribute("aria-hidden", "true"); grip.textContent = "⠿";
     const open = document.createElement("button"); open.className = "note-open"; open.type = "button"; open.setAttribute("aria-label", `Ouvrir ${note.title || "la note"}`);
     const title = document.createElement("strong"); title.textContent = note.title || "Sans titre";
     const preview = document.createElement("span"); preview.textContent = notePreview(note.content);
@@ -299,7 +307,7 @@ function renderNotes() {
     const child = document.createElement("button"); child.className = "note-child"; child.type = "button"; child.textContent = "+"; child.title = "Créer une sous-note"; child.setAttribute("aria-label", `Créer une sous-note de ${note.title || "cette note"}`);
     child.onclick = () => createChildNote(note.id);
     const remove = document.createElement("button"); remove.className = "delete note-delete"; remove.type = "button"; remove.textContent = "×"; remove.setAttribute("aria-label", "Supprimer cette note");
-    remove.onclick = () => deleteNote(note.id); card.append(open, child, remove); list.append(card);
+    remove.onclick = () => deleteNote(note.id); card.append(grip, open, child, remove); list.append(card);
     const nextAncestry = new Set(ancestry); nextAncestry.add(note.id); childrenOf(note.id).forEach((nested) => appendNote(nested, depth + 1, nextAncestry));
   };
   const roots = notes.filter((note) => !note.parentId || !byId.has(note.parentId)).filter((note) => !query || visibleIds.has(note.id));
@@ -313,6 +321,17 @@ function renderNotes() {
     $("#note-content").innerHTML = normaliseNoteContent(note.content);
     formatCodeBlocks($("#note-content"));
   }
+}
+function canNestNote(childId, parentId) {
+  if (!childId || childId === parentId) return false;
+  const byId = new Map(notes.map((note) => [note.id, note])); let cursor = byId.get(parentId);
+  while (cursor) { if (cursor.id === childId) return false; cursor = byId.get(cursor.parentId); }
+  return byId.has(childId) && byId.has(parentId);
+}
+async function moveNoteToParent(childId, parentId) {
+  if (!canNestNote(childId, parentId)) return;
+  const child = notes.find((note) => note.id === childId); if (child.parentId === parentId) return;
+  child.parentId = parentId; await change("notes", child); renderNotes();
 }
 function renderCalendar() {
   const today = new Date();
