@@ -28,7 +28,10 @@ const ARCHIVE_REWARDS = ["Insigne du cartographe", "Lentille de terrain", "Bouss
 let markdownTimer = null, markdownPreviewVisible = false;
 let draggedNoteId = null;
 let draggedTaskId = null;
+let touchDraggedTaskId = null, touchNestTimer = null, touchDropTarget = null;
 let dailyArchiveTimer = null;
+let taskArchiveView = false, noteArchiveView = false;
+let archiveView = null, archiveDialogReturn = null;
 
 // --- IndexedDB : la copie locale et la file d'attente hors ligne. ---
 function openDb() {
@@ -286,34 +289,83 @@ function notePreview(content) {
 // --- Rendu. Les contenus riches sont assainis avant d'entrer dans le DOM. ---
 function renderTasks() {
   tasks.sort((a, b) => b.updatedAt - a.updatedAt);
-  const activeTasks = tasks.filter((task) => !task.archivedAt);
-  const list = $("#task-list"); list.replaceChildren(); $("#tasks-empty").hidden = activeTasks.length > 0;
-  const byId = new Map(activeTasks.map((task) => [task.id, task]));
-  const childrenOf = (parentId) => activeTasks.filter((task) => (task.parentId || null) === parentId);
+  const archivedTasks = tasks.filter((task) => task.archivedAt);
+  const shownTasks = taskArchiveView ? archivedTasks : tasks.filter((task) => !task.archivedAt);
+  $("#show-task-archives").textContent = taskArchiveView ? "Tâches actives" : `Archives (${archivedTasks.length})`;
+  $("#show-task-archives").setAttribute("aria-pressed", String(taskArchiveView));
+  const list = $("#task-list"); list.replaceChildren(); $("#tasks-empty").hidden = shownTasks.length > 0;
+  $("#tasks-empty").textContent = taskArchiveView ? "Aucune tâche archivée." : "Aucune tâche. À l’aventure !";
+  const byId = new Map(shownTasks.map((task) => [task.id, task]));
+  const childrenOf = (parentId) => shownTasks.filter((task) => (task.parentId || null) === parentId);
   const appendTask = (task, depth, ancestry) => {
     if (ancestry.has(task.id)) return; // Évite d'afficher une boucle éventuellement ancienne.
-    const item = document.createElement("li"); item.className = `task${task.done ? " done" : ""}`;
-    const visualDepth = Math.min(depth, 4); item.dataset.depth = String(visualDepth); item.style.marginLeft = `${visualDepth * 14}px`; item.style.width = `calc(100% - ${visualDepth * 14}px)`;
-    item.draggable = true; item.setAttribute("aria-roledescription", "Tâche déplaçable"); item.title = "Glissez cette tâche sur une autre pour en faire une sous-tâche";
+    const item = document.createElement("li"); item.className = `task${task.done ? " done" : ""}${task.archivedAt ? " archived" : ""}`;
+    const visualDepth = Math.min(depth, 4); item.dataset.depth = String(visualDepth); item.dataset.taskId = task.id; item.style.marginLeft = `${visualDepth * 14}px`; item.style.width = `calc(100% - ${visualDepth * 14}px)`;
+    item.draggable = !taskArchiveView; item.setAttribute("aria-roledescription", taskArchiveView ? "Tâche archivée" : "Tâche déplaçable"); item.title = taskArchiveView ? "Archive de tâche" : "Glissez cette tâche sur une autre pour en faire une sous-tâche";
     item.ondragstart = (event) => { draggedTaskId = task.id; item.classList.add("dragging"); event.dataTransfer.effectAllowed = "move"; event.dataTransfer.setData("text/plain", task.id); };
     item.ondragend = () => { draggedTaskId = null; document.querySelectorAll(".task.drop-target").forEach((target) => target.classList.remove("drop-target")); item.classList.remove("dragging"); };
     item.ondragover = (event) => { if (!canNestTask(draggedTaskId, task.id)) return; event.preventDefault(); event.dataTransfer.dropEffect = "move"; item.classList.add("drop-target"); };
     item.ondragleave = () => item.classList.remove("drop-target");
     item.ondrop = async (event) => { event.preventDefault(); item.classList.remove("drop-target"); const childId = event.dataTransfer.getData("text/plain") || draggedTaskId; if (canNestTask(childId, task.id)) await moveTaskToParent(childId, task.id); };
+    if (!taskArchiveView) wireTouchNesting(item, task.id);
     const check = document.createElement("input"); check.type = "checkbox"; check.checked = task.done;
+    check.disabled = taskArchiveView;
     check.onchange = async () => { task.done = check.checked; await change("tasks", task); renderTasks(); };
     const grip = document.createElement("span"); grip.className = "task-grip"; grip.setAttribute("aria-hidden", "true"); grip.textContent = "⠿";
     const text = document.createElement("span"); text.textContent = task.text;
-    const child = document.createElement("button"); child.className = "task-child"; child.type = "button"; child.textContent = "+"; child.title = "Créer une sous-tâche"; child.setAttribute("aria-label", `Créer une sous-tâche de ${task.text}`);
-    child.onclick = () => createChildTask(task.id);
-    const edit = document.createElement("button"); edit.className = "task-edit"; edit.type = "button"; edit.textContent = "✎"; edit.title = "Modifier la tâche"; edit.setAttribute("aria-label", `Modifier ${task.text}`);
-    edit.onclick = () => editTask(task, text);
-    const remove = document.createElement("button"); remove.className = "delete"; remove.type = "button"; remove.textContent = "×"; remove.title = "Archiver cette tâche"; remove.setAttribute("aria-label", "Archiver cette tâche");
-    remove.onclick = () => archiveTask(task.id);
-    item.append(check, grip, text, child, edit, remove); list.append(item);
+    if (!taskArchiveView) {
+      const child = document.createElement("button"); child.className = "task-child"; child.type = "button"; child.textContent = "+"; child.title = "Créer une sous-tâche"; child.setAttribute("aria-label", `Créer une sous-tâche de ${task.text}`); child.onclick = () => createChildTask(task.id);
+      const edit = document.createElement("button"); edit.className = "task-edit"; edit.type = "button"; edit.textContent = "✎"; edit.title = "Modifier la tâche"; edit.setAttribute("aria-label", `Modifier ${task.text}`); edit.onclick = () => editTask(task, text);
+      const archive = document.createElement("button"); archive.className = "delete"; archive.type = "button"; archive.textContent = "×"; archive.title = "Archiver cette tâche"; archive.setAttribute("aria-label", "Archiver cette tâche"); archive.onclick = () => archiveTask(task.id);
+      item.append(check, grip, text, child, edit, archive);
+    } else {
+      const restore = document.createElement("button"); restore.className = "task-restore"; restore.type = "button"; restore.textContent = "↶"; restore.title = "Restaurer cette tâche"; restore.setAttribute("aria-label", "Restaurer cette tâche"); restore.onclick = () => restoreTask(task.id);
+      item.append(check, grip, text, restore);
+    }
+    list.append(item);
     const nextAncestry = new Set(ancestry); nextAncestry.add(task.id); childrenOf(task.id).forEach((nested) => appendTask(nested, depth + 1, nextAncestry));
   };
-  activeTasks.filter((task) => !task.parentId || !byId.has(task.parentId)).forEach((task) => appendTask(task, 0, new Set()));
+  shownTasks.filter((task) => !task.parentId || !byId.has(task.parentId)).forEach((task) => appendTask(task, 0, new Set()));
+}
+function clearTouchNesting() {
+  clearTimeout(touchNestTimer); touchNestTimer = null;
+  document.querySelectorAll(".task.touch-nesting, .task.touch-drop-target").forEach((element) => element.classList.remove("touch-nesting", "touch-drop-target"));
+  touchDraggedTaskId = null; touchDropTarget = null;
+}
+function touchTaskAt(touch) {
+  const element = document.elementFromPoint(touch.clientX, touch.clientY);
+  return element?.closest(".task") || null;
+}
+function wireTouchNesting(item, taskId) {
+  let startPoint = null;
+  item.addEventListener("touchstart", (event) => {
+    const target = event.target instanceof Element ? event.target : null;
+    if (target?.closest("button, input, .task-edit-field")) return;
+    const touch = event.touches[0]; if (!touch) return;
+    startPoint = { x: touch.clientX, y: touch.clientY };
+    touchNestTimer = setTimeout(() => {
+      touchDraggedTaskId = taskId; item.classList.add("touch-nesting");
+      navigator.vibrate?.(18);
+    }, 480);
+  }, { passive: true });
+  item.addEventListener("touchmove", (event) => {
+    const touch = event.touches[0]; if (!touch) return;
+    if (!touchDraggedTaskId) {
+      if (startPoint && Math.hypot(touch.clientX - startPoint.x, touch.clientY - startPoint.y) > 12) clearTimeout(touchNestTimer);
+      return;
+    }
+    event.preventDefault();
+    const candidate = touchTaskAt(touch);
+    if (touchDropTarget && touchDropTarget !== candidate) touchDropTarget.classList.remove("touch-drop-target");
+    touchDropTarget = candidate && canNestTask(touchDraggedTaskId, candidate.dataset.taskId) ? candidate : null;
+    touchDropTarget?.classList.add("touch-drop-target");
+  }, { passive: false });
+  item.addEventListener("touchend", async (event) => {
+    clearTimeout(touchNestTimer); const touch = event.changedTouches[0]; const childId = touchDraggedTaskId;
+    const candidate = touch ? touchTaskAt(touch) : null; const parentId = candidate?.dataset.taskId;
+    clearTouchNesting(); if (canNestTask(childId, parentId)) await moveTaskToParent(childId, parentId);
+  }, { passive: false });
+  item.addEventListener("touchcancel", clearTouchNesting, { passive: true });
 }
 function editTask(task, textElement) {
   const field = document.createElement("input");
@@ -347,6 +399,10 @@ async function archiveTask(id) {
   const task = tasks.find((item) => item.id === id); if (!task || task.archivedAt) return;
   task.archivedAt = Date.now(); await change("tasks", task); renderTasks();
 }
+async function restoreTask(id) {
+  const task = tasks.find((item) => item.id === id); if (!task || !task.archivedAt) return;
+  task.archivedAt = null; await change("tasks", task); renderTasks();
+}
 async function archiveCompletedTasks() {
   const completed = tasks.filter((task) => task.done && !task.archivedAt);
   if (!completed.length) return 0;
@@ -375,21 +431,25 @@ function scheduleDailyTaskArchive() {
 function renderNotes() {
   notes.sort((a, b) => b.updatedAt - a.updatedAt);
   const query = noteSearch.trim().toLocaleLowerCase("fr-FR");
-  // Les archives restent invisibles au quotidien, mais réapparaissent dès qu'une recherche les concerne.
-  const directMatches = notes.filter((note) => query
-    ? `${note.title} ${notePreview(note.content)}`.toLocaleLowerCase("fr-FR").includes(query)
-    : !note.archivedAt);
+  const archivedNotes = notes.filter((note) => note.archivedAt);
+  $("#show-note-archives").textContent = noteArchiveView ? "Notes actives" : `Archives (${archivedNotes.length})`;
+  $("#show-note-archives").setAttribute("aria-pressed", String(noteArchiveView));
+  // Hors archive, une recherche conserve son rôle de filet de sécurité et retrouve aussi les notes classées.
+  const directMatches = notes.filter((note) => {
+    const matches = !query || `${note.title} ${notePreview(note.content)}`.toLocaleLowerCase("fr-FR").includes(query);
+    return noteArchiveView ? !!note.archivedAt && matches : query ? matches : !note.archivedAt;
+  });
   const byId = new Map(notes.map((note) => [note.id, note])); const visibleIds = new Set(directMatches.map((note) => note.id));
   // Une recherche garde les parents visibles : le contexte de chaque sous-note reste clair.
   directMatches.forEach((note) => { let parent = byId.get(note.parentId); while (parent && !visibleIds.has(parent.id)) { visibleIds.add(parent.id); parent = byId.get(parent.parentId); } });
   const list = $("#notes-list"); list.replaceChildren(); $("#notes-empty").hidden = directMatches.length > 0;
-  $("#notes-empty").textContent = notes.length && query ? "Aucune note ne contient cette recherche." : "Aucune note.";
+  $("#notes-empty").textContent = noteArchiveView ? "Aucune note archivée." : notes.length && query ? "Aucune note ne contient cette recherche." : "Aucune note.";
   const childrenOf = (parentId) => notes.filter((note) => (note.parentId || null) === parentId && (!query || visibleIds.has(note.id)));
   const appendNote = (note, depth, ancestry) => {
     if (ancestry.has(note.id)) return; // Protection contre une éventuelle boucle ancienne.
     const card = document.createElement("article"); card.className = `note-card${note.id === selectedNoteId ? " selected" : ""}${note.archivedAt ? " archived" : ""}`;
     const visualDepth = Math.min(depth, 4); card.dataset.depth = String(visualDepth); card.style.marginLeft = `${visualDepth * 14}px`; card.style.width = `calc(100% - ${visualDepth * 14}px)`;
-    card.draggable = true; card.setAttribute("aria-roledescription", "Note déplaçable"); card.title = "Glissez cette note sur une autre pour en faire une sous-note";
+    card.draggable = !note.archivedAt; card.setAttribute("aria-roledescription", note.archivedAt ? "Note archivée" : "Note déplaçable"); card.title = note.archivedAt ? "Note archivée" : "Glissez cette note sur une autre pour en faire une sous-note";
     card.ondragstart = (event) => { draggedNoteId = note.id; card.classList.add("dragging"); event.dataTransfer.effectAllowed = "move"; event.dataTransfer.setData("text/plain", note.id); };
     card.ondragend = () => { draggedNoteId = null; document.querySelectorAll(".note-card.drop-target").forEach((target) => target.classList.remove("drop-target")); card.classList.remove("dragging"); };
     card.ondragover = (event) => { if (!canNestNote(draggedNoteId, note.id)) return; event.preventDefault(); event.dataTransfer.dropEffect = "move"; card.classList.add("drop-target"); };
@@ -400,12 +460,13 @@ function renderNotes() {
     const title = document.createElement("strong"); title.textContent = note.title || "Sans titre";
     const preview = document.createElement("span"); preview.textContent = notePreview(note.content);
     open.append(title, preview); open.onclick = () => { selectedNoteId = note.id; renderNotes(); };
-    const child = document.createElement("button"); child.className = "note-child"; child.type = "button"; child.textContent = "+"; child.title = "Créer une sous-note"; child.setAttribute("aria-label", `Créer une sous-note de ${note.title || "cette note"}`);
-    child.onclick = () => createChildNote(note.id);
     const archive = document.createElement("button"); archive.className = "note-archive"; archive.type = "button"; archive.textContent = note.archivedAt ? "↶" : "▣"; archive.title = note.archivedAt ? "Restaurer cette note" : "Archiver cette note";
     archive.setAttribute("aria-label", archive.title); archive.onclick = () => toggleNoteArchive(note.id);
     const remove = document.createElement("button"); remove.className = "delete note-delete"; remove.type = "button"; remove.textContent = "×"; remove.setAttribute("aria-label", "Supprimer cette note");
-    remove.onclick = () => deleteNote(note.id); card.append(grip, open, child, archive, remove); list.append(card);
+    remove.onclick = () => deleteNote(note.id);
+    if (!note.archivedAt) { const child = document.createElement("button"); child.className = "note-child"; child.type = "button"; child.textContent = "+"; child.title = "Créer une sous-note"; child.setAttribute("aria-label", `Créer une sous-note de ${note.title || "cette note"}`); child.onclick = () => createChildNote(note.id); card.append(grip, open, child, archive, remove); }
+    else card.append(grip, open, archive, remove);
+    list.append(card);
     const nextAncestry = new Set(ancestry); nextAncestry.add(note.id); childrenOf(note.id).forEach((nested) => appendNote(nested, depth + 1, nextAncestry));
   };
   const roots = notes.filter((note) => !note.parentId || !visibleIds.has(note.parentId)).filter((note) => visibleIds.has(note.id));
@@ -733,7 +794,11 @@ function closeReader() { saveReaderSoon(); $("#note-reader").classList.add("hidd
 $("#read-note").onclick = openReader; $("#close-reader").onclick = closeReader;
 $("#reader-content").oninput = saveReaderSoon;
 $("#reader-content").onblur = () => { $("#reader-content").innerHTML = normaliseNoteContent($("#reader-content").innerHTML); formatCodeBlocks($("#reader-content")); saveReaderSoon(); };
-document.addEventListener("keydown", (event) => { if (event.key === "Escape" && !$("#note-reader").classList.contains("hidden")) closeReader(); });
+document.addEventListener("keydown", (event) => {
+  if (event.key !== "Escape") return;
+  if (!$("#note-reader").classList.contains("hidden")) closeReader();
+  else if (!$("#archive-dialog").classList.contains("hidden")) closeArchiveDialog();
+});
 async function removeQueuedOperations(table) {
   const operations = await all(QUEUE);
   await Promise.all(operations.filter((operation) => operation.table === table).map((operation) => drop(QUEUE, operation.id)));
@@ -810,8 +875,40 @@ async function purgeTaskArchivesManually() {
   tasks = tasks.filter((task) => !task.archivedAt); await Promise.all(archived.map((task) => queueDeletion("tasks", task.id))); renderTasks(); sync();
   $("#maintenance-message").textContent = "Archives de tâches supprimées définitivement.";
 }
+function archiveDate(timestamp) { return new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(timestamp)); }
+function renderArchiveDialog() {
+  const isTasks = archiveView === "tasks"; const records = (isTasks ? tasks : notes).filter((record) => record.archivedAt).sort((a, b) => b.archivedAt - a.archivedAt);
+  $("#archive-dialog-title").textContent = isTasks ? "Archives des tâches" : "Archives des notes";
+  $("#archive-dialog-info").textContent = isTasks ? "Les tâches archivées sont effacées automatiquement après 15 jours." : "Les notes archivées sont conservées et peuvent être restaurées à tout moment.";
+  const list = $("#archive-list"); list.replaceChildren(); $("#archive-empty").hidden = records.length > 0;
+  records.forEach((record) => {
+    const entry = document.createElement("article"); entry.className = "archive-entry";
+    const heading = document.createElement("strong"); heading.textContent = isTasks ? record.text : record.title || "Sans titre";
+    const detail = document.createElement("span"); detail.textContent = `${isTasks ? "Tâche" : notePreview(record.content)} · Archivée le ${archiveDate(record.archivedAt)}`;
+    const restore = document.createElement("button"); restore.type = "button"; restore.className = "archive-restore"; restore.textContent = "↶ Restaurer"; restore.setAttribute("aria-label", `Restaurer ${heading.textContent}`);
+    restore.onclick = async () => { if (isTasks) await restoreTask(record.id); else await restoreNote(record.id); renderArchiveDialog(); };
+    entry.append(heading, detail, restore); list.append(entry);
+  });
+}
+function openArchiveDialog(kind, trigger) {
+  archiveView = kind; archiveDialogReturn = trigger; renderArchiveDialog(); $("#archive-dialog").classList.remove("hidden"); $("#close-archives").focus();
+}
+function closeArchiveDialog() { $("#archive-dialog").classList.add("hidden"); archiveView = null; archiveDialogReturn?.focus(); archiveDialogReturn = null; }
+async function restoreTask(id) {
+  const task = tasks.find((item) => item.id === id); if (!task) return;
+  task.archivedAt = null; await change("tasks", task); renderTasks();
+}
+async function restoreNote(id) {
+  const note = notes.find((item) => item.id === id); if (!note) return;
+  note.archivedAt = null; await change("notes", note); renderNotes();
+}
 $("#reset-notes").onclick = () => resetRemoteCollection("notes");
 $("#reset-tasks").onclick = () => resetRemoteCollection("tasks");
+$("#show-task-archives").onclick = () => { taskArchiveView = !taskArchiveView; renderTasks(); };
+$("#show-note-archives").onclick = () => { noteArchiveView = !noteArchiveView; renderNotes(); };
+$("#view-task-archives").onclick = (event) => openArchiveDialog("tasks", event.currentTarget);
+$("#view-note-archives").onclick = (event) => openArchiveDialog("notes", event.currentTarget);
+$("#close-archives").onclick = closeArchiveDialog;
 $("#purge-task-archives").onclick = purgeTaskArchivesManually;
 $("#export-notes").onclick = exportNotes;
 $("#import-notes").onclick = () => $("#import-notes-file").click();
