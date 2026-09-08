@@ -33,8 +33,8 @@
             <p id="tasks-empty" class="empty">Aucune tâche. À l’aventure !</p>
         </section>
         <section id="notes" class="view hidden">
-            <div class="tools">
-                <h2>Mes notes</h2><button id="new-note" class="add" type="button">+ Nouvelle note</button>
+            <div class="tools notes-tools">
+                <h2>Mes notes</h2><div class="notes-tools-actions"><input id="notes-search" type="search" autocomplete="off" placeholder="Rechercher dans les notes…" aria-label="Rechercher un mot dans les notes"><button id="new-note" class="add" type="button">+ Nouvelle note</button></div>
             </div>
             <div class="notes-layout">
                 <aside class="note-list">
@@ -89,7 +89,7 @@
         <article class="note-sheet">
             <div class="reader-bar"><button id="close-reader" type="button" aria-label="Fermer la lecture plein écran" title="Fermer">×</button></div>
             <h2 id="reader-title"></h2>
-            <div id="reader-content" class="rich-content"></div>
+            <div id="reader-content" class="rich-content" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Contenu de la note en lecture plein écran"></div>
         </article>
     </section>
     <section id="login-screen" class="login-screen"><button id="theme-toggle-login" class="theme-toggle" type="button"
