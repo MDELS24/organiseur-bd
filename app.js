@@ -14,6 +14,9 @@ const EMAIL_COOLDOWN_KEY = "organiseur-email-cooldown-until";
 const MARKDOWN_DRAFT_KEY = "organiseur-markdown-draft";
 const NOTE_PARENT_MARKER = /^<!--organiseur-parent:([a-f0-9-]{36})-->/i;
 const TASK_PARENT_MARKER = /^<!--organiseur-task-parent:([a-f0-9-]{36})-->/i;
+const NOTE_META_MARKER = /^<!--organiseur-note-meta:([^>]+)-->/i;
+const TASK_META_MARKER = /^<!--organiseur-task-meta:([^>]+)-->/i;
+const ARCHIVE_RETENTION_MS = 15 * 24 * 60 * 60 * 1000;
 const MONTHS = ["JANVIER", "FÉVRIER", "MARS", "AVRIL", "MAI", "JUIN", "JUILLET", "AOÛT", "SEPTEMBRE", "OCTOBRE", "NOVEMBRE", "DÉCEMBRE"];
 
 let tasks = [], notes = [], selectedNoteId = null, user = null, noteTimer = null, todoChannel = null, noteChannel = null, noteSearch = "";
@@ -25,6 +28,7 @@ const ARCHIVE_REWARDS = ["Insigne du cartographe", "Lentille de terrain", "Bouss
 let markdownTimer = null, markdownPreviewVisible = false;
 let draggedNoteId = null;
 let draggedTaskId = null;
+let dailyArchiveTimer = null;
 
 // --- IndexedDB : la copie locale et la file d'attente hors ligne. ---
 function openDb() {
@@ -282,9 +286,10 @@ function notePreview(content) {
 // --- Rendu. Les contenus riches sont assainis avant d'entrer dans le DOM. ---
 function renderTasks() {
   tasks.sort((a, b) => b.updatedAt - a.updatedAt);
-  const list = $("#task-list"); list.replaceChildren(); $("#tasks-empty").hidden = tasks.length > 0;
-  const byId = new Map(tasks.map((task) => [task.id, task]));
-  const childrenOf = (parentId) => tasks.filter((task) => (task.parentId || null) === parentId);
+  const activeTasks = tasks.filter((task) => !task.archivedAt);
+  const list = $("#task-list"); list.replaceChildren(); $("#tasks-empty").hidden = activeTasks.length > 0;
+  const byId = new Map(activeTasks.map((task) => [task.id, task]));
+  const childrenOf = (parentId) => activeTasks.filter((task) => (task.parentId || null) === parentId);
   const appendTask = (task, depth, ancestry) => {
     if (ancestry.has(task.id)) return; // Évite d'afficher une boucle éventuellement ancienne.
     const item = document.createElement("li"); item.className = `task${task.done ? " done" : ""}`;
@@ -303,12 +308,12 @@ function renderTasks() {
     child.onclick = () => createChildTask(task.id);
     const edit = document.createElement("button"); edit.className = "task-edit"; edit.type = "button"; edit.textContent = "✎"; edit.title = "Modifier la tâche"; edit.setAttribute("aria-label", `Modifier ${task.text}`);
     edit.onclick = () => editTask(task, text);
-    const remove = document.createElement("button"); remove.className = "delete"; remove.type = "button"; remove.textContent = "×"; remove.setAttribute("aria-label", "Supprimer cette tâche");
-    remove.onclick = () => deleteTask(task.id);
+    const remove = document.createElement("button"); remove.className = "delete"; remove.type = "button"; remove.textContent = "×"; remove.title = "Archiver cette tâche"; remove.setAttribute("aria-label", "Archiver cette tâche");
+    remove.onclick = () => archiveTask(task.id);
     item.append(check, grip, text, child, edit, remove); list.append(item);
     const nextAncestry = new Set(ancestry); nextAncestry.add(task.id); childrenOf(task.id).forEach((nested) => appendTask(nested, depth + 1, nextAncestry));
   };
-  tasks.filter((task) => !task.parentId || !byId.has(task.parentId)).forEach((task) => appendTask(task, 0, new Set()));
+  activeTasks.filter((task) => !task.parentId || !byId.has(task.parentId)).forEach((task) => appendTask(task, 0, new Set()));
 }
 function editTask(task, textElement) {
   const field = document.createElement("input");
@@ -338,10 +343,42 @@ async function moveTaskToParent(childId, parentId) {
   const child = tasks.find((task) => task.id === childId); if (child.parentId === parentId) return;
   child.parentId = parentId; await change("tasks", child); renderTasks();
 }
+async function archiveTask(id) {
+  const task = tasks.find((item) => item.id === id); if (!task || task.archivedAt) return;
+  task.archivedAt = Date.now(); await change("tasks", task); renderTasks();
+}
+async function archiveCompletedTasks() {
+  const completed = tasks.filter((task) => task.done && !task.archivedAt);
+  if (!completed.length) return 0;
+  const stamp = Date.now(); completed.forEach((task) => { task.archivedAt = stamp; });
+  await Promise.all(completed.map((task) => change("tasks", task))); renderTasks(); return completed.length;
+}
+async function purgeExpiredTaskArchives() {
+  const expired = tasks.filter((task) => task.archivedAt && Date.now() - task.archivedAt >= ARCHIVE_RETENTION_MS);
+  if (!expired.length) return 0;
+  tasks = tasks.filter((task) => !expired.some((old) => old.id === task.id));
+  await Promise.all(expired.map((task) => queueDeletion("tasks", task.id))); renderTasks(); sync(); return expired.length;
+}
+function archiveDayKey(date = new Date()) { return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`; }
+async function runDailyTaskArchiveIfDue() {
+  const now = new Date(); const key = archiveDayKey(now);
+  if (now.getHours() >= 3 && localStorage.getItem("organiseur-last-task-archive") !== key) {
+    await archiveCompletedTasks(); localStorage.setItem("organiseur-last-task-archive", key);
+  }
+  await purgeExpiredTaskArchives();
+}
+function scheduleDailyTaskArchive() {
+  clearTimeout(dailyArchiveTimer); const now = new Date(); const next = new Date(now);
+  next.setHours(3, 0, 0, 0); if (next <= now) next.setDate(next.getDate() + 1);
+  dailyArchiveTimer = setTimeout(async () => { await runDailyTaskArchiveIfDue(); scheduleDailyTaskArchive(); }, next - now + 80);
+}
 function renderNotes() {
   notes.sort((a, b) => b.updatedAt - a.updatedAt);
   const query = noteSearch.trim().toLocaleLowerCase("fr-FR");
-  const directMatches = notes.filter((note) => !query || `${note.title} ${notePreview(note.content)}`.toLocaleLowerCase("fr-FR").includes(query));
+  // Les archives restent invisibles au quotidien, mais réapparaissent dès qu'une recherche les concerne.
+  const directMatches = notes.filter((note) => query
+    ? `${note.title} ${notePreview(note.content)}`.toLocaleLowerCase("fr-FR").includes(query)
+    : !note.archivedAt);
   const byId = new Map(notes.map((note) => [note.id, note])); const visibleIds = new Set(directMatches.map((note) => note.id));
   // Une recherche garde les parents visibles : le contexte de chaque sous-note reste clair.
   directMatches.forEach((note) => { let parent = byId.get(note.parentId); while (parent && !visibleIds.has(parent.id)) { visibleIds.add(parent.id); parent = byId.get(parent.parentId); } });
@@ -350,7 +387,7 @@ function renderNotes() {
   const childrenOf = (parentId) => notes.filter((note) => (note.parentId || null) === parentId && (!query || visibleIds.has(note.id)));
   const appendNote = (note, depth, ancestry) => {
     if (ancestry.has(note.id)) return; // Protection contre une éventuelle boucle ancienne.
-    const card = document.createElement("article"); card.className = `note-card${note.id === selectedNoteId ? " selected" : ""}`;
+    const card = document.createElement("article"); card.className = `note-card${note.id === selectedNoteId ? " selected" : ""}${note.archivedAt ? " archived" : ""}`;
     const visualDepth = Math.min(depth, 4); card.dataset.depth = String(visualDepth); card.style.marginLeft = `${visualDepth * 14}px`; card.style.width = `calc(100% - ${visualDepth * 14}px)`;
     card.draggable = true; card.setAttribute("aria-roledescription", "Note déplaçable"); card.title = "Glissez cette note sur une autre pour en faire une sous-note";
     card.ondragstart = (event) => { draggedNoteId = note.id; card.classList.add("dragging"); event.dataTransfer.effectAllowed = "move"; event.dataTransfer.setData("text/plain", note.id); };
@@ -365,11 +402,13 @@ function renderNotes() {
     open.append(title, preview); open.onclick = () => { selectedNoteId = note.id; renderNotes(); };
     const child = document.createElement("button"); child.className = "note-child"; child.type = "button"; child.textContent = "+"; child.title = "Créer une sous-note"; child.setAttribute("aria-label", `Créer une sous-note de ${note.title || "cette note"}`);
     child.onclick = () => createChildNote(note.id);
+    const archive = document.createElement("button"); archive.className = "note-archive"; archive.type = "button"; archive.textContent = note.archivedAt ? "↶" : "▣"; archive.title = note.archivedAt ? "Restaurer cette note" : "Archiver cette note";
+    archive.setAttribute("aria-label", archive.title); archive.onclick = () => toggleNoteArchive(note.id);
     const remove = document.createElement("button"); remove.className = "delete note-delete"; remove.type = "button"; remove.textContent = "×"; remove.setAttribute("aria-label", "Supprimer cette note");
-    remove.onclick = () => deleteNote(note.id); card.append(grip, open, child, remove); list.append(card);
+    remove.onclick = () => deleteNote(note.id); card.append(grip, open, child, archive, remove); list.append(card);
     const nextAncestry = new Set(ancestry); nextAncestry.add(note.id); childrenOf(note.id).forEach((nested) => appendNote(nested, depth + 1, nextAncestry));
   };
-  const roots = notes.filter((note) => !note.parentId || !byId.has(note.parentId)).filter((note) => !query || visibleIds.has(note.id));
+  const roots = notes.filter((note) => !note.parentId || !visibleIds.has(note.parentId)).filter((note) => visibleIds.has(note.id));
   roots.forEach((note) => appendNote(note, 0, new Set()));
   const note = notes.find((item) => item.id === selectedNoteId); const opened = !!note;
   ["#note-title", "#note-content", "#note-sync", "#read-note"].forEach((id) => $(id).classList.toggle("hidden", !opened));
@@ -391,6 +430,12 @@ async function moveNoteToParent(childId, parentId) {
   if (!canNestNote(childId, parentId)) return;
   const child = notes.find((note) => note.id === childId); if (child.parentId === parentId) return;
   child.parentId = parentId; await change("notes", child); renderNotes();
+}
+async function toggleNoteArchive(id) {
+  const note = notes.find((item) => item.id === id); if (!note) return;
+  note.archivedAt = note.archivedAt ? null : Date.now();
+  if (note.archivedAt && selectedNoteId === id && !noteSearch.trim()) selectedNoteId = null;
+  await change("notes", note); renderNotes();
 }
 function renderCalendar() {
   const today = new Date();
@@ -563,16 +608,28 @@ async function deleteNote(id) {
   notes = notes.filter((note) => note.id !== id); if (selectedNoteId === id) selectedNoteId = notes[0]?.id || null;
   await Promise.all(children.map((note) => change("notes", note))); await queueDeletion("notes", id); renderNotes(); sync();
 }
-function packedNoteContent(note) { return note.parentId ? `<!--organiseur-parent:${note.parentId}-->${note.content || ""}` : note.content || ""; }
+function encodeMeta(meta) { return encodeURIComponent(JSON.stringify(meta)); }
+function decodeMeta(value) { try { return JSON.parse(decodeURIComponent(value)); } catch { return {}; } }
+function packedNoteContent(note) {
+  const meta = {}; if (note.parentId) meta.parentId = note.parentId; if (note.archivedAt) meta.archivedAt = note.archivedAt;
+  return Object.keys(meta).length ? `<!--organiseur-note-meta:${encodeMeta(meta)}-->${note.content || ""}` : note.content || "";
+}
 function unpackedNote(row) {
-  const source = String(row.content || ""); const match = source.match(NOTE_PARENT_MARKER);
-  return { content: match ? source.slice(match[0].length) : source, parentId: match ? match[1] : null };
+  let source = String(row.content || ""); const metaMatch = source.match(NOTE_META_MARKER); const meta = metaMatch ? decodeMeta(metaMatch[1]) : {};
+  if (metaMatch) source = source.slice(metaMatch[0].length);
+  const legacy = source.match(NOTE_PARENT_MARKER); if (legacy) source = source.slice(legacy[0].length);
+  return { content: source, parentId: meta.parentId || legacy?.[1] || null, archivedAt: Number(meta.archivedAt) || null };
 }
 // Le parent est rangé dans le champ texte déjà présent dans Supabase : aucune migration n'est nécessaire.
-function packedTaskText(task) { return task.parentId ? `<!--organiseur-task-parent:${task.parentId}-->${task.text || ""}` : task.text || ""; }
+function packedTaskText(task) {
+  const meta = {}; if (task.parentId) meta.parentId = task.parentId; if (task.archivedAt) meta.archivedAt = task.archivedAt;
+  return Object.keys(meta).length ? `<!--organiseur-task-meta:${encodeMeta(meta)}-->${task.text || ""}` : task.text || "";
+}
 function unpackedTask(row) {
-  const source = String(row.text || ""); const match = source.match(TASK_PARENT_MARKER);
-  return { text: match ? source.slice(match[0].length) : source, parentId: match ? match[1] : null };
+  let source = String(row.text || ""); const metaMatch = source.match(TASK_META_MARKER); const meta = metaMatch ? decodeMeta(metaMatch[1]) : {};
+  if (metaMatch) source = source.slice(metaMatch[0].length);
+  const legacy = source.match(TASK_PARENT_MARKER); if (legacy) source = source.slice(legacy[0].length);
+  return { text: source, parentId: meta.parentId || legacy?.[1] || null, archivedAt: Number(meta.archivedAt) || null };
 }
 async function flush() {
   if (!user || !navigator.onLine) return;
@@ -629,7 +686,7 @@ async function createChildTask(parentId) {
   tasks.unshift(task); await change("tasks", task); renderTasks();
 }
 $("#task-form").onsubmit = async (event) => { event.preventDefault(); const input = $("#task-input"), text = input.value.trim(); if (!text) return; const now = Date.now(), task = { id: crypto.randomUUID(), parentId: null, text, done: false, createdAt: now, updatedAt: now }; tasks.unshift(task); await change("tasks", task); input.value = ""; renderTasks(); };
-$("#clear-done").onclick = async () => { const done = tasks.filter((task) => task.done); tasks = tasks.filter((task) => !task.done); await Promise.all(done.map((task) => queueDeletion("tasks", task.id))); renderTasks(); sync(); };
+$("#clear-done").onclick = async () => { const count = await archiveCompletedTasks(); $("#maintenance-message").textContent = count ? `${count} tâche${count > 1 ? "s" : ""} terminée${count > 1 ? "s" : ""} archivée${count > 1 ? "s" : ""}.` : "Aucune tâche terminée à archiver."; };
 function datedNoteTitle() {
   const stamp = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date());
   return `Note — ${stamp}`;
@@ -699,8 +756,66 @@ async function clearLocalCache() {
   $("#maintenance-message").textContent = user ? "Cache local vidé. Les données Supabase vont être relues." : "Cache local vidé.";
   if (user) sync();
 }
+function markdownInline(node) {
+  if (node.nodeType === Node.TEXT_NODE) return node.textContent.replace(/([\\`])/g, "\\$1");
+  const content = [...node.childNodes].map(markdownInline).join("");
+  if (["STRONG", "B"].includes(node.tagName)) return `**${content}**`;
+  if (["EM", "I"].includes(node.tagName)) return `*${content}*`;
+  if (["DEL", "S"].includes(node.tagName)) return `~~${content}~~`;
+  if (node.tagName === "CODE") return `\`${content.replace(/`/g, "\\`")}\``;
+  if (node.tagName === "A") return `[${content}](${node.getAttribute("href") || ""})`;
+  if (node.tagName === "BR") return "\n";
+  return content;
+}
+function noteToMarkdown(content) {
+  const body = new DOMParser().parseFromString(normaliseNoteContent(content), "text/html").body;
+  const block = (node) => {
+    const text = markdownInline(node).trim();
+    if (/^H[1-4]$/.test(node.tagName)) return `${"#".repeat(Number(node.tagName[1]) + 1)} ${text}\n\n`;
+    if (["P", "DIV"].includes(node.tagName)) return text ? `${text}\n\n` : "";
+    if (["BLOCKQUOTE", "ASIDE"].includes(node.tagName)) return text.split("\n").map((line) => `> ${line}`).join("\n") + "\n\n";
+    if (node.tagName === "PRE") { const language = node.dataset.language || node.querySelector("code")?.dataset.language || ""; return `\`\`\`${language}\n${node.textContent.replace(/\n$/, "")}\n\`\`\`\n\n`; }
+    if (node.tagName === "UL") return [...node.children].filter((item) => item.tagName === "LI").map((item) => `- ${markdownInline(item).trim()}`).join("\n") + "\n\n";
+    if (node.tagName === "OL") return [...node.children].filter((item) => item.tagName === "LI").map((item, index) => `${Number(item.dataset.step) || index + 1}. ${markdownInline(item).trim()}`).join("\n") + "\n\n";
+    if (node.tagName === "HR") return "---\n\n";
+    return text ? `${text}\n\n` : "";
+  };
+  return [...body.children].map(block).join("").replace(/\n{3,}/g, "\n\n").trim();
+}
+function markdownNoteTitle(title) { return String(title || "Sans titre").replace(/[\r\n]+/g, " ").replace(/^#+\s*/, "").trim(); }
+function exportNotes() {
+  const sections = notes.slice().sort((a, b) => a.createdAt - b.createdAt).map((note) => {
+    const parent = /^[a-f0-9-]{36}$/i.test(note.parentId || "") ? note.parentId : "";
+    return `<!--organiseur-note id="${note.id}" parent="${parent}" archived-at="${note.archivedAt || ""}"-->\n## ${markdownNoteTitle(note.title)}\n\n${noteToMarkdown(note.content)}\n\n<!--/organiseur-note-->`;
+  });
+  const source = `# Export des notes — Organiseur MD\n\n${sections.join("\n\n---\n\n")}\n`;
+  const url = URL.createObjectURL(new Blob([source], { type: "text/markdown;charset=utf-8" })); const link = document.createElement("a");
+  link.href = url; link.download = `organiseur-notes-${new Date().toISOString().slice(0, 10)}.md`; link.click(); URL.revokeObjectURL(url);
+  $("#maintenance-message").textContent = `${notes.length} note${notes.length > 1 ? "s" : ""} exportée${notes.length > 1 ? "s" : ""}, archives incluses.`;
+}
+async function importNotesFile(file) {
+  if (!file) return; const source = await file.text();
+  const pattern = /<!--organiseur-note\s+id="([a-f0-9-]{36})"\s+parent="([a-f0-9-]*)"\s+archived-at="(\d*)"-->\s*##\s+([^\n]+)\n([\s\S]*?)<!--\/organiseur-note-->/gi;
+  const imported = []; let match;
+  while ((match = pattern.exec(source))) { const [, id, parentId, archivedAt, title, markdown] = match; imported.push({ id, parentId: parentId || null, archivedAt: Number(archivedAt) || null, title: markdownNoteTitle(title), content: plainTextToHtml(markdown.trim()), createdAt: Date.now(), updatedAt: Date.now() }); }
+  if (!imported.length) { $("#maintenance-message").textContent = "Import impossible : choisissez un export Markdown de l’Organiseur MD."; return; }
+  const byId = new Map(notes.map((note) => [note.id, note])); imported.forEach((note) => byId.set(note.id, note)); notes = [...byId.values()];
+  await Promise.all(imported.map((note) => change("notes", note))); selectedNoteId = imported[0].id; renderNotes();
+  $("#maintenance-message").textContent = `${imported.length} note${imported.length > 1 ? "s" : ""} importée${imported.length > 1 ? "s" : ""}.`;
+}
+async function purgeTaskArchivesManually() {
+  const archived = tasks.filter((task) => task.archivedAt);
+  if (!archived.length) { $("#maintenance-message").textContent = "Aucune archive de tâche à supprimer."; return; }
+  if (!confirm(`Supprimer définitivement ${archived.length} archive${archived.length > 1 ? "s" : ""} de tâche ?`)) return;
+  tasks = tasks.filter((task) => !task.archivedAt); await Promise.all(archived.map((task) => queueDeletion("tasks", task.id))); renderTasks(); sync();
+  $("#maintenance-message").textContent = "Archives de tâches supprimées définitivement.";
+}
 $("#reset-notes").onclick = () => resetRemoteCollection("notes");
 $("#reset-tasks").onclick = () => resetRemoteCollection("tasks");
+$("#purge-task-archives").onclick = purgeTaskArchivesManually;
+$("#export-notes").onclick = exportNotes;
+$("#import-notes").onclick = () => $("#import-notes-file").click();
+$("#import-notes-file").onchange = async (event) => { await importNotesFile(event.target.files[0]); event.target.value = ""; };
 $("#clear-local").onclick = clearLocalCache;
 $("#delete-note").onclick = () => selectedNoteId && deleteNote(selectedNoteId);
 $("#notes-search").oninput = () => { noteSearch = $("#notes-search").value; renderNotes(); };
@@ -754,10 +869,10 @@ $("#brand-reveal").onclick = toggleNavigation;
 $("#brand-reveal").onkeydown = (event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); toggleNavigation(); } };
 
 async function init() {
-  [tasks, notes] = await Promise.all([all("tasks"), all("notes")]); renderTasks(); renderNotes(); renderMarkdownWorkspace(); renderCalendar(); route(); updateClock(); setInterval(updateClock, 1000); setTheme(localStorage.getItem("organiseur-theme") === "dark"); account(null); updateEmailCooldown();
+  [tasks, notes] = await Promise.all([all("tasks"), all("notes")]); await runDailyTaskArchiveIfDue(); scheduleDailyTaskArchive(); renderTasks(); renderNotes(); renderMarkdownWorkspace(); renderCalendar(); route(); updateClock(); setInterval(updateClock, 1000); setTheme(localStorage.getItem("organiseur-theme") === "dark"); account(null); updateEmailCooldown();
   if (!configured) return;
   const { data: { session } } = await sbClient.auth.getSession(); account(session?.user || null);
-  if (session?.user) { await sync(); await subscribe(); }
-  sbClient.auth.onAuthStateChange(async (_event, state) => { account(state?.user || null); if (state?.user) { await sync(); await subscribe(); } });
+  if (session?.user) { await sync(); await runDailyTaskArchiveIfDue(); await sync(); await subscribe(); }
+  sbClient.auth.onAuthStateChange(async (_event, state) => { account(state?.user || null); if (state?.user) { await sync(); await runDailyTaskArchiveIfDue(); await sync(); await subscribe(); } });
 }
 init().catch((error) => { console.error(error); status("Erreur"); });

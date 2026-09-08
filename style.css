@@ -1848,14 +1848,20 @@ body.dark {
         .note-card.drop-target { border-color: var(--red); background: #f6e4a3; box-shadow: 4px 4px var(--red), inset 0 0 0 2px rgba(255,255,255,.56) }
         .note-card[data-depth]:not([data-depth="0"])::before { content: ""; position: absolute; top: -9px; bottom: 50%; left: -10px; width: 8px; border-left: 2px solid var(--blue); border-bottom: 2px solid var(--blue); pointer-events: none }
         .note-grip { position: absolute; top: 8px; left: 5px; color: var(--blue); font: 900 1rem/1 Arial, sans-serif; letter-spacing: -3px; pointer-events: none }
-        .note-open { padding-right: 58px; padding-left: 16px }
-        .note-child { position: absolute; top: 7px; right: 34px; display: grid; width: 22px; height: 22px; place-items: center; padding: 0; border: 2px solid var(--ink); background: #f0c84b; box-shadow: 1px 1px var(--shadow); color: #142941; font: 900 1rem/.8 Impact, "Arial Black", sans-serif }
-        .note-child:hover { filter: brightness(1.08) }
-        .note-child:active { transform: translate(1px, 1px); box-shadow: none }
+        .note-open { padding-right: 84px; padding-left: 16px }
+        .note-child, .note-archive { position: absolute; top: 7px; display: grid; width: 22px; height: 22px; place-items: center; padding: 0; border: 2px solid var(--ink); box-shadow: 1px 1px var(--shadow); color: #142941; font: 900 1rem/.8 Impact, "Arial Black", sans-serif }
+        .note-child { right: 34px; background: #f0c84b }
+        .note-archive { right: 60px; background: var(--blue); color: #fffaf0; font-size: .75rem }
+        .note-child:hover, .note-archive:hover { filter: brightness(1.08) }
+        .note-child:active, .note-archive:active { transform: translate(1px, 1px); box-shadow: none }
+        .note-card.archived { border-style: dashed; background: #e8dfc8; opacity: .86 }
         body.dark .note-card[data-depth]:not([data-depth="0"])::before { border-color: #7dc2db }
         body.dark .note-card.drop-target { border-color: #ee5960; background: #365c70; box-shadow: 4px 4px #a62d37, inset 0 0 0 2px rgba(248,237,210,.12) }
         body.dark .note-grip { color: #7dc2db }
-        body.dark .note-child { border-color: #f8edd2; background: #f0c84b; color: #142941 }
+        body.dark .note-child, body.dark .note-archive { border-color: #f8edd2 }
+        body.dark .note-child { background: #f0c84b; color: #142941 }
+        body.dark .note-archive { background: #28608d; color: #fffaf0 }
+        body.dark .note-card.archived { background: #2b4052; opacity: .92 }
         @media (max-width: 650px) {
             .note-card[data-depth]:not([data-depth="0"])::before { left: -8px; width: 6px }
         }

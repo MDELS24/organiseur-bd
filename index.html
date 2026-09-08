@@ -24,7 +24,7 @@
         </nav>
         <section id="todos" class="view">
             <div class="tools">
-                <h2>Mes tâches</h2><button id="clear-done" class="alt" type="button">Effacer terminées</button>
+                <h2>Mes tâches</h2><button id="clear-done" class="alt" type="button">Archiver terminées</button>
             </div>
             <form id="task-form" class="task-form"><input id="task-input" maxlength="180"
                     placeholder="Ajouter une tâche…" required><button>Ajouter</button></form>
@@ -77,6 +77,10 @@
                 <p>Ces commandes servent à repartir sur une base saine. Les suppressions cloud sont définitives après confirmation.</p>
                 <button id="reset-notes" type="button">Effacer toutes les notes</button>
                 <button id="reset-tasks" type="button">Effacer toutes les tâches</button>
+                <button id="purge-task-archives" class="alt" type="button">Supprimer les archives de tâches</button>
+                <button id="export-notes" class="alt" type="button">Exporter les notes (.md)</button>
+                <button id="import-notes" class="alt" type="button">Importer des notes (.md)</button>
+                <input id="import-notes-file" type="file" accept=".md,.markdown,text/markdown,text/plain" hidden>
                 <button id="clear-local" class="alt" type="button">Vider le cache local</button>
                 <p id="maintenance-message" class="maintenance-message" role="status" aria-live="polite"></p>
                 <div class="maintenance-signout"><button id="signout" class="hidden" type="button">↪ Se déconnecter</button></div>
