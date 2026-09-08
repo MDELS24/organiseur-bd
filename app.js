@@ -9,6 +9,7 @@ const EMAIL_COOLDOWN_MS = 60_000;
 const EMAIL_COOLDOWN_KEY = "organiseur-email-cooldown-until";
 const MARKDOWN_DRAFT_KEY = "organiseur-markdown-draft";
 const NOTE_PARENT_MARKER = /^<!--organiseur-parent:([a-f0-9-]{36})-->/i;
+const TASK_PARENT_MARKER = /^<!--organiseur-task-parent:([a-f0-9-]{36})-->/i;
 const MONTHS = ["JANVIER", "FÉVRIER", "MARS", "AVRIL", "MAI", "JUIN", "JUILLET", "AOÛT", "SEPTEMBRE", "OCTOBRE", "NOVEMBRE", "DÉCEMBRE"];
 
 let tasks = [], notes = [], selectedNoteId = null, user = null, noteTimer = null, todoChannel = null, noteChannel = null, noteSearch = "";
@@ -20,6 +21,7 @@ const ARCHIVE_REWARDS = ["Insigne du cartographe", "Lentille de terrain", "Bouss
 let brandDateTimer = null;
 let markdownTimer = null, markdownPreviewVisible = false;
 let draggedNoteId = null;
+let draggedTaskId = null;
 
 // --- IndexedDB : la copie locale et la file d'attente hors ligne. ---
 function openDb() {
@@ -272,15 +274,41 @@ function notePreview(content) {
 function renderTasks() {
   tasks.sort((a, b) => b.updatedAt - a.updatedAt);
   const list = $("#task-list"); list.replaceChildren(); $("#tasks-empty").hidden = tasks.length > 0;
-  tasks.forEach((task) => {
+  const byId = new Map(tasks.map((task) => [task.id, task]));
+  const childrenOf = (parentId) => tasks.filter((task) => (task.parentId || null) === parentId);
+  const appendTask = (task, depth, ancestry) => {
+    if (ancestry.has(task.id)) return; // Évite d'afficher une boucle éventuellement ancienne.
     const item = document.createElement("li"); item.className = `task${task.done ? " done" : ""}`;
+    const visualDepth = Math.min(depth, 4); item.dataset.depth = String(visualDepth); item.style.marginLeft = `${visualDepth * 14}px`; item.style.width = `calc(100% - ${visualDepth * 14}px)`;
+    item.draggable = true; item.setAttribute("aria-roledescription", "Tâche déplaçable"); item.title = "Glissez cette tâche sur une autre pour en faire une sous-tâche";
+    item.ondragstart = (event) => { draggedTaskId = task.id; item.classList.add("dragging"); event.dataTransfer.effectAllowed = "move"; event.dataTransfer.setData("text/plain", task.id); };
+    item.ondragend = () => { draggedTaskId = null; document.querySelectorAll(".task.drop-target").forEach((target) => target.classList.remove("drop-target")); item.classList.remove("dragging"); };
+    item.ondragover = (event) => { if (!canNestTask(draggedTaskId, task.id)) return; event.preventDefault(); event.dataTransfer.dropEffect = "move"; item.classList.add("drop-target"); };
+    item.ondragleave = () => item.classList.remove("drop-target");
+    item.ondrop = async (event) => { event.preventDefault(); item.classList.remove("drop-target"); const childId = event.dataTransfer.getData("text/plain") || draggedTaskId; if (canNestTask(childId, task.id)) await moveTaskToParent(childId, task.id); };
     const check = document.createElement("input"); check.type = "checkbox"; check.checked = task.done;
     check.onchange = async () => { task.done = check.checked; await change("tasks", task); renderTasks(); };
+    const grip = document.createElement("span"); grip.className = "task-grip"; grip.setAttribute("aria-hidden", "true"); grip.textContent = "⠿";
     const text = document.createElement("span"); text.textContent = task.text;
+    const child = document.createElement("button"); child.className = "task-child"; child.type = "button"; child.textContent = "+"; child.title = "Créer une sous-tâche"; child.setAttribute("aria-label", `Créer une sous-tâche de ${task.text}`);
+    child.onclick = () => createChildTask(task.id);
     const remove = document.createElement("button"); remove.className = "delete"; remove.type = "button"; remove.textContent = "×"; remove.setAttribute("aria-label", "Supprimer cette tâche");
     remove.onclick = () => deleteTask(task.id);
-    item.append(check, text, remove); list.append(item);
-  });
+    item.append(check, grip, text, child, remove); list.append(item);
+    const nextAncestry = new Set(ancestry); nextAncestry.add(task.id); childrenOf(task.id).forEach((nested) => appendTask(nested, depth + 1, nextAncestry));
+  };
+  tasks.filter((task) => !task.parentId || !byId.has(task.parentId)).forEach((task) => appendTask(task, 0, new Set()));
+}
+function canNestTask(childId, parentId) {
+  if (!childId || childId === parentId) return false;
+  const byId = new Map(tasks.map((task) => [task.id, task])); let cursor = byId.get(parentId);
+  while (cursor) { if (cursor.id === childId) return false; cursor = byId.get(cursor.parentId); }
+  return byId.has(childId) && byId.has(parentId);
+}
+async function moveTaskToParent(childId, parentId) {
+  if (!canNestTask(childId, parentId)) return;
+  const child = tasks.find((task) => task.id === childId); if (child.parentId === parentId) return;
+  child.parentId = parentId; await change("tasks", child); renderTasks();
 }
 function renderNotes() {
   notes.sort((a, b) => b.updatedAt - a.updatedAt);
@@ -496,7 +524,12 @@ async function queueDeletion(storeName, id) {
   await drop(storeName, id);
   await put(QUEUE, { id: `${storeName}:${id}`, table: storeName === "tasks" ? "todos" : "notes", type: "delete", record: { id } });
 }
-async function deleteTask(id) { tasks = tasks.filter((task) => task.id !== id); await queueDeletion("tasks", id); renderTasks(); sync(); }
+async function deleteTask(id) {
+  // Une sous-tâche n'est jamais perdue : elle redevient simplement une tâche racine.
+  const children = tasks.filter((task) => task.parentId === id); children.forEach((task) => { task.parentId = null; });
+  tasks = tasks.filter((task) => task.id !== id);
+  await Promise.all(children.map((task) => change("tasks", task))); await queueDeletion("tasks", id); renderTasks(); sync();
+}
 async function deleteNote(id) {
   const children = notes.filter((note) => note.parentId === id); children.forEach((note) => { note.parentId = null; });
   notes = notes.filter((note) => note.id !== id); if (selectedNoteId === id) selectedNoteId = notes[0]?.id || null;
@@ -507,18 +540,24 @@ function unpackedNote(row) {
   const source = String(row.content || ""); const match = source.match(NOTE_PARENT_MARKER);
   return { content: match ? source.slice(match[0].length) : source, parentId: match ? match[1] : null };
 }
+// Le parent est rangé dans le champ texte déjà présent dans Supabase : aucune migration n'est nécessaire.
+function packedTaskText(task) { return task.parentId ? `<!--organiseur-task-parent:${task.parentId}-->${task.text || ""}` : task.text || ""; }
+function unpackedTask(row) {
+  const source = String(row.text || ""); const match = source.match(TASK_PARENT_MARKER);
+  return { text: match ? source.slice(match[0].length) : source, parentId: match ? match[1] : null };
+}
 async function flush() {
   if (!user || !navigator.onLine) return;
   for (const operation of await all(QUEUE)) {
     const request = operation.type === "delete"
       ? sbClient.from(operation.table).delete().eq("id", operation.record.id)
-      : sbClient.from(operation.table).upsert({ id: operation.record.id, user_id: user.id, text: operation.record.text, title: operation.record.title, content: operation.table === "notes" ? packedNoteContent(operation.record) : operation.record.content, done: operation.record.done, created_at: new Date(operation.record.createdAt).toISOString(), updated_at: new Date(operation.record.updatedAt).toISOString() });
+      : sbClient.from(operation.table).upsert({ id: operation.record.id, user_id: user.id, text: operation.table === "todos" ? packedTaskText(operation.record) : operation.record.text, title: operation.record.title, content: operation.table === "notes" ? packedNoteContent(operation.record) : operation.record.content, done: operation.record.done, created_at: new Date(operation.record.createdAt).toISOString(), updated_at: new Date(operation.record.updatedAt).toISOString() });
     const { error } = await request; if (error) throw error; await drop(QUEUE, operation.id);
   }
 }
 async function pull(table) {
   const { data, error } = await sbClient.from(table).select("*").order("updated_at", { ascending: false }); if (error) throw error;
-  const remoteRecords = data.map((row) => table === "todos" ? ({ id: row.id, text: row.text, done: row.done, createdAt: Date.parse(row.created_at), updatedAt: Date.parse(row.updated_at) }) : ({ id: row.id, title: row.title, ...unpackedNote(row), createdAt: Date.parse(row.created_at), updatedAt: Date.parse(row.updated_at) }));
+  const remoteRecords = data.map((row) => table === "todos" ? ({ id: row.id, ...unpackedTask(row), done: row.done, createdAt: Date.parse(row.created_at), updatedAt: Date.parse(row.updated_at) }) : ({ id: row.id, title: row.title, ...unpackedNote(row), createdAt: Date.parse(row.created_at), updatedAt: Date.parse(row.updated_at) }));
   const storeName = table === "todos" ? "tasks" : "notes";
   const localRecords = table === "todos" ? tasks : notes;
   const pending = await all(QUEUE);
@@ -556,7 +595,12 @@ async function subscribe() {
 }
 
 // --- Événements utilisateur. ---
-$("#task-form").onsubmit = async (event) => { event.preventDefault(); const input = $("#task-input"), text = input.value.trim(); if (!text) return; const now = Date.now(), task = { id: crypto.randomUUID(), text, done: false, createdAt: now, updatedAt: now }; tasks.unshift(task); await change("tasks", task); input.value = ""; renderTasks(); };
+async function createChildTask(parentId) {
+  const now = Date.now();
+  const task = { id: crypto.randomUUID(), parentId, text: "Nouvelle sous-tâche", done: false, createdAt: now, updatedAt: now };
+  tasks.unshift(task); await change("tasks", task); renderTasks();
+}
+$("#task-form").onsubmit = async (event) => { event.preventDefault(); const input = $("#task-input"), text = input.value.trim(); if (!text) return; const now = Date.now(), task = { id: crypto.randomUUID(), parentId: null, text, done: false, createdAt: now, updatedAt: now }; tasks.unshift(task); await change("tasks", task); input.value = ""; renderTasks(); };
 $("#clear-done").onclick = async () => { const done = tasks.filter((task) => task.done); tasks = tasks.filter((task) => !task.done); await Promise.all(done.map((task) => queueDeletion("tasks", task.id))); renderTasks(); sync(); };
 function datedNoteTitle() {
   const stamp = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date());

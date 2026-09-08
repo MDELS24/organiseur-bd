@@ -1881,3 +1881,33 @@ body.dark {
         body.dark #note-content h1, body.dark #note-content h2, body.dark #note-content h3, body.dark #note-content h4,
         body.dark #reader-content h1, body.dark #reader-content h2, body.dark #reader-content h3, body.dark #reader-content h4,
         body.dark #markdown-preview h1, body.dark #markdown-preview h2, body.dark #markdown-preview h3, body.dark #markdown-preview h4 { background: transparent; color: #f8edd2; text-shadow: none }
+
+        /* La liste est une colonne de classement : le contenu défile dans sa
+           zone, puis se termine sur une réglette visible plutôt qu'un arrêt sec. */
+        .note-list { display: flex; flex-direction: column; min-height: 0; padding: 0; overflow: hidden }
+        .note-list-scroll { min-height: 0; flex: 1 1 auto; overflow-y: auto; overscroll-behavior: contain; padding: 13px; scrollbar-color: var(--blue) transparent; scrollbar-width: thin }
+        .note-list-footer { flex: 0 0 17px; border-top: 3px solid var(--ink); background: repeating-linear-gradient(135deg, var(--red) 0 9px, #efcf55 9px 17px, var(--blue) 17px 26px) }
+        body.dark .note-list-footer { border-top-color: #f8edd2; background: repeating-linear-gradient(135deg, #a62d37 0 9px, #d5ae41 9px 17px, #28608d 17px 26px) }
+
+        /* Arborescence des tâches : mêmes repères de classement que les notes. */
+        .task { position: relative; box-sizing: border-box; padding-right: 68px }
+        .task[draggable="true"] { cursor: grab }
+        .task[draggable="true"]:active { cursor: grabbing }
+        .task.dragging { opacity: .46; filter: saturate(.55); transform: scale(.98) }
+        .task.drop-target { border-color: var(--red); background: #f6e4a3; box-shadow: 4px 4px var(--red), inset 0 0 0 2px rgba(255,255,255,.56) }
+        .task[data-depth]:not([data-depth="0"])::after { content: ""; position: absolute; top: -9px; bottom: 50%; left: -10px; width: 8px; border-left: 2px solid var(--blue); border-bottom: 2px solid var(--blue); pointer-events: none }
+        .task .task-grip { flex: 0 0 auto; color: var(--blue); font: 900 1rem/1 Arial, sans-serif; letter-spacing: -3px; pointer-events: none }
+        .task > span:not(.task-grip) { flex: 1; min-width: 0 }
+        .task-child, .task .delete { position: absolute; top: 50%; display: grid; width: 22px; height: 22px; place-items: center; padding: 0; border: 2px solid var(--ink); color: #142941; font: 900 1rem/.8 Impact, "Arial Black", sans-serif }
+        .task-child { right: 38px; background: #f0c84b; box-shadow: 1px 1px var(--shadow); transform: translateY(-50%) }
+        .task .delete { right: 9px; background: var(--yellow); transform: translateY(-50%) }
+        .task-child:hover { filter: brightness(1.08) }
+        .task-child:active { transform: translateY(-50%) translate(1px, 1px); box-shadow: none }
+        body.dark .task[data-depth]:not([data-depth="0"])::after { border-color: #7dc2db }
+        body.dark .task.drop-target { border-color: #ee5960; background: #365c70; box-shadow: 4px 4px #a62d37, inset 0 0 0 2px rgba(248,237,210,.12) }
+        body.dark .task .task-grip { color: #7dc2db }
+        body.dark .task-child, body.dark .task .delete { border-color: #f8edd2; color: #142941 }
+        @media (max-width: 650px) {
+            .task { gap: 8px; padding: 10px 62px 10px 10px }
+            .task[data-depth]:not([data-depth="0"])::after { left: -8px; width: 6px }
+        }
