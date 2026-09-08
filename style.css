@@ -1855,6 +1855,26 @@ body.dark {
             .calendar-date-row .calendar-full-date { padding: 6px 8px 5px; font-size: clamp(.67rem, 3.45vw, .86rem); letter-spacing: .015em }
         }
 
+        /* Même ligne de référence dans chaque onglet : titre à gauche,
+           actions à droite, puis le contenu commence au même rythme. */
+        .view { padding: 24px 25px 26px }
+        .view > .tools { min-height: 38px; margin: 0 0 14px; align-items: center }
+        .view > .tools h2 { display: flex; align-items: center; min-height: 34px; letter-spacing: .045em }
+        .archive-tools, .notes-tools-actions { min-height: 34px; align-items: center }
+        .notes-tools-actions { justify-content: flex-end }
+        .markdown-intro { margin: 0 0 14px }
+        .calendar-page-title { margin-bottom: 14px }
+        .calendar-shell { margin: 0 auto 4px }
+        .maintenance-panel { margin-top: 0 }
+        @media (max-width: 650px) {
+            .view { padding: 18px 16px 22px }
+            .view > .tools { min-height: auto; margin-bottom: 13px; gap: 9px }
+            .view > .tools h2 { min-height: 30px }
+            .notes-tools-actions, .archive-tools { min-height: 34px }
+            .calendar-page-title { margin-bottom: 12px }
+            .calendar-shell { margin-bottom: 2px }
+        }
+
         /* La déconnexion reste volontairement à l'écart, en bas de Maintenance. */
         .maintenance-signout { display: flex; justify-content: flex-end; margin-top: 20px; padding-top: 13px; border-top: 2px solid rgba(20, 41, 65, .25) }
         .maintenance-signout #signout { background: transparent; color: var(--ink); box-shadow: none; font-size: .7rem }
